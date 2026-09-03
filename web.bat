@@ -1,0 +1,1 @@
+live-server --open=./index.html --watch=. --port=8088 .
