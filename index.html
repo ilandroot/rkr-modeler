@@ -243,12 +243,12 @@ function canvasToClay(x_canvas, z_canvas) {
     const cx = w / 2;
     const cz = h / 2;
 
-    // Canvas の 80% を粘土断面に使っている
     const scale = Math.min(w, h) * 0.8 / L;
 
-    // 粘土座標系（-L/2 ～ +L/2）
     const x_clay = (x_canvas - cx) / scale;
-    const z_clay = (z_canvas - cz) / scale;
+
+    // ★ Canvas の z は下が正 → Three.js の z は上が正
+    const z_clay = -(z_canvas - cz) / scale;
 
     return { x: x_clay, z: z_clay };
 }
@@ -304,8 +304,8 @@ const camera = new THREE.PerspectiveCamera(
     0.1,
     1000
 );
-// camera.position.set(40, 40, 40);
-camera.position.set(40, 0, 40); 
+camera.position.set(40, 40, 40);
+/* camera.position.set(40, 0, 40);  */
 camera.lookAt(0, 0, 0);
 camera.up = new THREE.Vector3(0, 0, 1);
 
