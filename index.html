@@ -137,11 +137,6 @@ window.addEventListener("resize", resizeCanvas);
 let profilePoints = [];
 let R = Number(document.getElementById("radiusSlider").value);
 
-document.getElementById("radiusSlider").addEventListener("input", (e) => {
-    R = Number(e.target.value);
-    draw();
-});
-
 function getXZFromEvent(e) {
     const rect = canvas.getBoundingClientRect();
     const x = e.clientX - rect.left;
@@ -151,7 +146,28 @@ function getXZFromEvent(e) {
 
 canvas.addEventListener("click", (e) => {
     const p = getXZFromEvent(e);
-    profilePoints.push(p);
+
+    profilePoints.push({
+        x: p.x,
+        z: p.z,
+        R: R,            // ★ 現在のスライダーの半径を保存
+        processed: false // ★ 未加工ヘラ
+    });
+
+    draw();
+});
+
+document.getElementById("radiusSlider").addEventListener("input", () => {
+    const newR = Number(radiusSlider.value);
+
+    // 未加工ヘラだけ半径を更新
+    profilePoints.forEach(p => {
+        if (!p.processed) {
+            p.R = newR;
+        }
+    });
+
+    R = newR;
     draw();
 });
 
@@ -200,15 +216,14 @@ function draw() {
 
         const w = canvas.width;
         const h = canvas.height;
-        const scale = Math.min(w, h) * 0.8 / L;
-        const R_canvas = R * scale;
 
         if (p.processed) {
             ctx.strokeStyle = "#999";   // グレー
         } else {
             ctx.strokeStyle = "#0077ff"; // 青
         }
-
+        const scale = Math.min(w, h) * 0.8 / L;
+        const R_canvas = p.R * scale;
         ctx.arc(p.x, p.z, R_canvas, 0, Math.PI * 2);
         ctx.stroke();
     }
@@ -430,11 +445,14 @@ document.getElementById("generateBtn").addEventListener("click", () => {
 
     profilePoints.forEach(p_canvas => {
 
+        // ★ 加工済みヘラは軌跡を生成しない
+        if (p_canvas.processed) return;
+
         const p_clay = canvasToClay(p_canvas.x, p_canvas.z);
         const pts3d = generateRotationalPoints(p_clay, steps);
 
         pts3d.forEach(pt => {
-            const geo = new THREE.SphereGeometry(R, 16, 16);
+            const geo = new THREE.SphereGeometry(p_canvas.R, 16, 16); // ★ 修正
             const mat = new THREE.MeshPhongMaterial({ color: 0xff4444 });
             const mesh = new THREE.Mesh(geo, mat);
             mesh.position.set(pt.x, pt.y, pt.z);
@@ -444,6 +462,7 @@ document.getElementById("generateBtn").addEventListener("click", () => {
 
     scene.add(traceGroup);
 });
+
 
 document.getElementById("processBtn").addEventListener("click", () => {
 
