@@ -101,7 +101,7 @@
 
     <div class="control-group">
         <label>回転分割数 steps_rot</label>
-        <input type="range" id="rotSlider" min="10" max="180" value="60">
+        <input type="range" id="rotSlider" min="10" max="180" value="120">
     </div>
 
     <div class="control-group">
@@ -192,6 +192,7 @@ function drawClaySquare() {
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+/*
     ctx.strokeStyle = "#ddd";
     for (let gx = 0; gx < canvas.width; gx += 50) {
         ctx.beginPath();
@@ -200,6 +201,41 @@ function draw() {
         ctx.stroke();
     }
     for (let gz = 0; gz < canvas.height; gz += 50) {
+        ctx.beginPath();
+        ctx.moveTo(0, gz);
+        ctx.lineTo(canvas.width, gz);
+        ctx.stroke();
+    }
+*/
+    // === 原点中心グリッド ===
+    ctx.strokeStyle = "#ddd";
+    ctx.lineWidth = 1;
+
+    const cx = canvas.width / 2;
+    const cz = canvas.height / 2;
+
+    // 縦線（X方向）
+    for (let gx = cx; gx < canvas.width; gx += 50) {
+        ctx.beginPath();
+        ctx.moveTo(gx, 0);
+        ctx.lineTo(gx, canvas.height);
+        ctx.stroke();
+    }
+    for (let gx = cx; gx > 0; gx -= 50) {
+        ctx.beginPath();
+        ctx.moveTo(gx, 0);
+        ctx.lineTo(gx, canvas.height);
+        ctx.stroke();
+    }
+
+    // 横線（Z方向）
+    for (let gz = cz; gz < canvas.height; gz += 50) {
+        ctx.beginPath();
+        ctx.moveTo(0, gz);
+        ctx.lineTo(canvas.width, gz);
+        ctx.stroke();
+    }
+    for (let gz = cz; gz > 0; gz -= 50) {
         ctx.beginPath();
         ctx.moveTo(0, gz);
         ctx.lineTo(canvas.width, gz);
@@ -227,6 +263,21 @@ function draw() {
         ctx.arc(p.x, p.z, R_canvas, 0, Math.PI * 2);
         ctx.stroke();
     }
+    // === 回転軸（センターライン） ===
+    ctx.strokeStyle = "#ff4444";   // 目立つ赤
+    ctx.lineWidth = 2;
+
+    // 縦のセンターライン（回転軸）
+    ctx.beginPath();
+    ctx.moveTo(canvas.width / 2, 0);
+    ctx.lineTo(canvas.width / 2, canvas.height);
+    ctx.stroke();
+
+    // 横のセンターライン（高さの基準）
+    ctx.beginPath();
+    ctx.moveTo(0, canvas.height / 2);
+    ctx.lineTo(canvas.width, canvas.height / 2);
+    ctx.stroke();
 
 }
 
