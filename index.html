@@ -137,13 +137,6 @@ window.addEventListener("resize", resizeCanvas);
 let profilePoints = [];
 let R = Number(document.getElementById("radiusSlider").value);
 
-<<<<<<< HEAD
-=======
-/* document.getElementById("radiusSlider").addEventListener("input", (e) => {
-    R = Number(e.target.value);
-    draw();
-}); */
-
 document.getElementById("radiusSlider").addEventListener("input", (e) => {
     const newR = Number(e.target.value);
 
@@ -159,8 +152,6 @@ document.getElementById("radiusSlider").addEventListener("input", (e) => {
     draw();
 });
 
-
->>>>>>> HEAD@{1}
 function getXZFromEvent(e) {
     const rect = canvas.getBoundingClientRect();
     const x = e.clientX - rect.left;
@@ -168,7 +159,7 @@ function getXZFromEvent(e) {
     return { x, z };
 }
 
-/* canvas.addEventListener("click", (e) => {
+canvas.addEventListener("click", (e) => {
     const p = getXZFromEvent(e);
 
     profilePoints.push({
@@ -193,7 +184,7 @@ document.getElementById("radiusSlider").addEventListener("input", () => {
 
     R = newR;
     draw();
-}); */
+});
 
 canvas.addEventListener("click", (e) => {
     const p_canvas = getXZFromEvent(e);
@@ -229,43 +220,6 @@ function drawClaySquare() {
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-<<<<<<< HEAD
-/*
-=======
-    // ★ 原点中心グリッド（復活）
->>>>>>> HEAD@{1}
-    ctx.strokeStyle = "#ddd";
-    ctx.lineWidth = 1;
-
-    const cx = canvas.width / 2;
-    const cz = canvas.height / 2;
-
-    for (let gx = cx; gx < canvas.width; gx += 50) {
-        ctx.beginPath();
-        ctx.moveTo(gx, 0);
-        ctx.lineTo(gx, canvas.height);
-        ctx.stroke();
-    }
-    for (let gx = cx; gx > 0; gx -= 50) {
-        ctx.beginPath();
-        ctx.moveTo(gx, 0);
-        ctx.lineTo(gx, canvas.height);
-        ctx.stroke();
-    }
-
-    for (let gz = cz; gz < canvas.height; gz += 50) {
-        ctx.beginPath();
-        ctx.moveTo(0, gz);
-        ctx.lineTo(canvas.width, gz);
-        ctx.stroke();
-    }
-    for (let gz = cz; gz > 0; gz -= 50) {
-        ctx.beginPath();
-        ctx.moveTo(0, gz);
-        ctx.lineTo(canvas.width, gz);
-        ctx.stroke();
-    }
-*/
     // === 原点中心グリッド ===
     ctx.strokeStyle = "#ddd";
     ctx.lineWidth = 1;
@@ -326,18 +280,16 @@ function draw() {
 
         const w = canvas.width;
         const h = canvas.height;
-<<<<<<< HEAD
-
-        if (p.processed) {
-            ctx.strokeStyle = "#999";   // グレー
-        } else {
-            ctx.strokeStyle = "#0077ff"; // 青
-        }
         const scale = Math.min(w, h) * 0.8 / L;
+
         const R_canvas = p.R * scale;
+
+        ctx.strokeStyle = p.processed ? "#999" : "#0077ff";
+
         ctx.arc(p.x, p.z, R_canvas, 0, Math.PI * 2);
         ctx.stroke();
     }
+
     // === 回転軸（センターライン） ===
     ctx.strokeStyle = "#ff4444";   // 目立つ赤
     ctx.lineWidth = 2;
@@ -354,18 +306,6 @@ function draw() {
     ctx.lineTo(canvas.width, canvas.height / 2);
     ctx.stroke();
 
-=======
-        const scale = Math.min(w, h) * 0.8 / L;
-
-        // ★ ヘラごとの半径を使う（これが正しい）
-        const R_canvas = p.R * scale;
-
-        ctx.strokeStyle = p.processed ? "#999" : "#0077ff";
-
-        ctx.arc(p.x, p.z, R_canvas, 0, Math.PI * 2);
-        ctx.stroke();
-    }
->>>>>>> HEAD@{1}
 }
 
 
@@ -584,11 +524,8 @@ document.getElementById("generateBtn").addEventListener("click", () => {
 
     profilePoints.forEach(p_canvas => {
 
-<<<<<<< HEAD
         // ★ 加工済みヘラは軌跡を生成しない
-=======
-         // ★ 加工済みヘラは軌跡を生成しない
->>>>>>> HEAD@{1}
+
         if (p_canvas.processed) return;
 
         const p_clay = canvasToClay(p_canvas.x, p_canvas.z);
