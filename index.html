@@ -508,6 +508,36 @@ function cut_sphere(ids_current, L, sphereCenter, R){
     ids_current = new_ids;
     return ids_current;
 }
+
+function classifyCell(cell) {
+    const count = cell.points.length;
+
+    if (count === 0) return "empty";
+    if (count === cell.capacity) return "filled";
+    return "mixed";  // 境界セル
+}
+
+function renderOctree(cell) {
+    const type = classifyCell(cell);
+
+    if (type === "mixed") {
+        const geometry = new THREE.BoxGeometry(cell.size, cell.size, cell.size);
+        const mesh = new THREE.Mesh(geometry, clayMaterial);
+
+        // ★ 位置をセット（必須）
+        mesh.position.set(cell.x, cell.y, cell.z);
+
+        // ★ add は 1 回だけ
+        scene.add(mesh);
+    }
+
+    if (cell.children) {
+        for (const child of cell.children) {
+            renderOctree(child);
+        }
+    }
+}
+
 //---
 let clayGroup = null;
 let traceGroup = null;
@@ -612,10 +642,8 @@ const camera = new THREE.PerspectiveCamera(
     1000
 );
 camera.position.set(40, 40, 40);
-/* camera.position.set(40, 0, 40);  */
 camera.lookAt(0, 0, 0);
 camera.up = new THREE.Vector3(0, 0, 1);
-
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(container.clientWidth, container.clientHeight);
@@ -626,11 +654,21 @@ container.appendChild(renderer.domElement);
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 
-const light = new THREE.DirectionalLight(0xffffff, 1);
-light.position.set(30, 50, 30);
-scene.add(light);
+const dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
+dirLight.position.set(30, 50, 30);
+scene.add(dirLight);
 
-scene.add(new THREE.AmbientLight(0xffffff, 0.4));
+scene.add(new THREE.AmbientLight(0xffffff, 0.3));
+
+const hemiLight = new THREE.HemisphereLight(0x88aaff, 0x444444, 0.4);
+scene.add(hemiLight);
+
+// ★ 粘土マテリアル（質感改善）
+const clayMaterial = new THREE.MeshStandardMaterial({
+    color: 0xc8a27a,   // 粘土色
+    roughness: 0.9,    // 表面のザラザラ感
+    metalness: 0.0     // 粘土なので金属感ゼロ
+});
 
 function createClayCube(L){
     const geometry = new THREE.BoxGeometry(L, L, L);
