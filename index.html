@@ -109,9 +109,11 @@
         <input type="range" id="profileSlider" min="5" max="100" value="30">
     </div>
 
-    <button id="generateBtn">生成</button>
+    <!--button id="generateBtn">生成</button-->
     <button id="processBtn">加工</button>
     <button id="resetBtn">リセット</button>
+    <button id="deleteToolBtn">active ヘラ削除</button>
+
 </div>
 
 </body>
@@ -184,6 +186,7 @@ document.getElementById("radiusSlider").addEventListener("input", () => {
 
     R = newR;
     draw();
+    generate3D();
 });
 
 canvas.addEventListener("click", (e) => {
@@ -197,6 +200,7 @@ canvas.addEventListener("click", (e) => {
     });
 
     draw();
+    generate3D();
 });
 
 const L = 25.6;
@@ -538,11 +542,30 @@ function renderOctree(cell) {
     }
 }
 
+
 //---
 let clayGroup = null;
 let traceGroup = null;
 
-document.getElementById("generateBtn").addEventListener("click", () => {
+function deleteActiveTool() {
+    for (let i = profilePoints.length - 1; i >= 0; i--) {
+        if (profilePoints[i].processed === false) {
+
+            // 配列から削除
+            profilePoints.splice(i, 1);
+
+            draw();   // 2D 再描画
+            return;
+        }
+    }
+    
+}
+
+function deleteActiveToolsAndRefresh(){
+    deleteActiveTool();
+    generate3D();
+}
+function generate3D(){
 
     const steps = Number(document.getElementById("rotSlider").value);
 
@@ -571,8 +594,9 @@ document.getElementById("generateBtn").addEventListener("click", () => {
     });
 
     scene.add(traceGroup);
-});
+}
 
+document.getElementById("deleteToolBtn").addEventListener("click", deleteActiveToolsAndRefresh);
 
 document.getElementById("processBtn").addEventListener("click", () => {
 
