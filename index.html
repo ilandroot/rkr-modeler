@@ -203,6 +203,7 @@ canvas.addEventListener("click", (e) => {
     generate3D();
 });
 
+
 const L = 25.6;
 
 function drawClaySquare() {
@@ -312,8 +313,6 @@ function draw() {
 
 }
 
-
-draw();
 
 /* ============================
    右：Three.js 3D 粘土ビュー
@@ -595,9 +594,9 @@ function generate3D(){
 
     scene.add(traceGroup);
 }
-
+//-- event handler for 3D
 document.getElementById("deleteToolBtn").addEventListener("click", deleteActiveToolsAndRefresh);
-
+draw();
 document.getElementById("processBtn").addEventListener("click", () => {
 
     // 生成で描いた赤い球を消す
@@ -625,6 +624,14 @@ document.getElementById("processBtn").addEventListener("click", () => {
     model.ids = ids_current;
     redrawClayFromIDs(model.ids);
     draw();
+});
+
+document.getElementById("rotSlider").addEventListener("input", () => {
+    generate3D();
+});
+
+document.getElementById("profileSlider").addEventListener("input", () => {
+    generate3D();
 });
 
 function redrawClayFromIDs(ids) {
