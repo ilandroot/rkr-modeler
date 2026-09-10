@@ -161,7 +161,7 @@ function getXZFromEvent(e) {
     return { x, z };
 }
 
-canvas.addEventListener("click", (e) => {
+/* canvas.addEventListener("click", (e) => {
     const p = getXZFromEvent(e);
 
     profilePoints.push({
@@ -172,7 +172,7 @@ canvas.addEventListener("click", (e) => {
     });
 
     draw();
-});
+}); */
 
 document.getElementById("radiusSlider").addEventListener("input", () => {
     const newR = Number(radiusSlider.value);
@@ -190,6 +190,7 @@ document.getElementById("radiusSlider").addEventListener("input", () => {
 });
 
 canvas.addEventListener("click", (e) => {
+
     const p_canvas = getXZFromEvent(e);
 
     profilePoints.push({
@@ -201,6 +202,7 @@ canvas.addEventListener("click", (e) => {
 
     draw();
     generate3D();
+
 });
 
 
@@ -223,6 +225,7 @@ function drawClaySquare() {
 }
 
 function draw() {
+
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     // === 原点中心グリッド ===
@@ -312,7 +315,6 @@ function draw() {
     ctx.stroke();
 
 }
-
 
 /* ============================
    右：Three.js 3D 粘土ビュー
@@ -541,29 +543,30 @@ function renderOctree(cell) {
     }
 }
 
-
 //---
 let clayGroup = null;
 let traceGroup = null;
 
 function deleteActiveTool() {
-    for (let i = profilePoints.length - 1; i >= 0; i--) {
-        if (profilePoints[i].processed === false) {
-
-            // 配列から削除
-            profilePoints.splice(i, 1);
-
-            draw();   // 2D 再描画
-            return;
-        }
+    // ★ profilePoints の最後のヘラが active
+    if (profilePoints.length > 0) {
+        profilePoints.pop();
     }
-    
 }
 
 function deleteActiveToolsAndRefresh(){
     deleteActiveTool();
-    generate3D();
+
+    // ★ traceGroup を完全に消す
+    if (traceGroup) {
+        scene.remove(traceGroup);
+        traceGroup = null;
+    }
+
+    draw();
+    generate3D();   // 新しいヘラだけで再生成
 }
+
 function generate3D(){
 
     const steps = Number(document.getElementById("rotSlider").value);
@@ -571,12 +574,12 @@ function generate3D(){
     // 古い軌跡を削除
     if (traceGroup) {
         scene.remove(traceGroup);
+        traceGroup = null;
     }
+
     traceGroup = new THREE.Group();
 
     profilePoints.forEach(p_canvas => {
-
-        // ★ 加工済みヘラは軌跡を生成しない
 
         if (p_canvas.processed) return;
 
@@ -584,7 +587,7 @@ function generate3D(){
         const pts3d = generateRotationalPoints(p_clay, steps);
 
         pts3d.forEach(pt => {
-            const geo = new THREE.SphereGeometry(p_canvas.R, 16, 16); // ★ 修正
+            const geo = new THREE.SphereGeometry(p_canvas.R, 16, 16);
             const mat = new THREE.MeshPhongMaterial({ color: 0xff4444 });
             const mesh = new THREE.Mesh(geo, mat);
             mesh.position.set(pt.x, pt.y, pt.z);
@@ -592,8 +595,15 @@ function generate3D(){
         });
     });
 
+    // ★ ここが重要：traceGroup が空なら scene に追加しない
+    if (traceGroup.children.length === 0) {
+        traceGroup = null;
+        return;
+    }
+
     scene.add(traceGroup);
 }
+
 //-- event handler for 3D
 document.getElementById("deleteToolBtn").addEventListener("click", deleteActiveToolsAndRefresh);
 draw();
