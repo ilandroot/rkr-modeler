@@ -112,7 +112,7 @@
     <!--button id="generateBtn">生成</button-->
     <button id="processBtn">加工</button>
     <button id="resetBtn">リセット</button>
-    <button id="deleteToolBtn">active ヘラ削除</button>
+    <button id="deleteToolBtn">ヘラを消す</button>
 
 </div>
 
@@ -161,18 +161,6 @@ function getXZFromEvent(e) {
     return { x, z };
 }
 
-/* canvas.addEventListener("click", (e) => {
-    const p = getXZFromEvent(e);
-
-    profilePoints.push({
-        x: p.x,
-        z: p.z,
-        R: R,            // ★ 現在のスライダーの半径を保存
-        processed: false // ★ 未加工ヘラ
-    });
-
-    draw();
-}); */
 
 document.getElementById("radiusSlider").addEventListener("input", () => {
     const newR = Number(radiusSlider.value);
@@ -203,6 +191,7 @@ canvas.addEventListener("click", (e) => {
     draw();
     generate3D();
 
+    previewPos = null;
 });
 
 
@@ -313,6 +302,22 @@ function draw() {
     ctx.moveTo(0, canvas.height / 2);
     ctx.lineTo(canvas.width, canvas.height / 2);
     ctx.stroke();
+
+    // ヘラのプレビュー表示
+    if (previewPos) {
+        let R_prev = Number(document.getElementById("radiusSlider").value);
+        const w = canvas.width;
+        const h = canvas.height;
+        const scale = Math.min(w, h) * 0.8 / L;
+        const R_canvas_prev = R_prev * scale;
+
+
+        ctx.strokeStyle = "rgba(0, 120, 255, 0.3)";
+        ctx.beginPath();
+        ctx.arc(previewPos.x, previewPos.z, R_canvas_prev, 0, Math.PI * 2);
+        ctx.stroke();
+    }
+
 
 }
 
@@ -546,6 +551,7 @@ function renderOctree(cell) {
 //---
 let clayGroup = null;
 let traceGroup = null;
+let previewPos = null;
 
 function deleteActiveTool() {
     // ★ profilePoints の最後のヘラが active
@@ -606,6 +612,8 @@ function generate3D(){
 
 //-- event handler for 3D
 document.getElementById("deleteToolBtn").addEventListener("click", deleteActiveToolsAndRefresh);
+
+document.getElementById("deleteToolBtn").addEventListener("click", deleteActiveToolsAndRefresh);
 draw();
 document.getElementById("processBtn").addEventListener("click", () => {
 
@@ -642,6 +650,11 @@ document.getElementById("rotSlider").addEventListener("input", () => {
 
 document.getElementById("profileSlider").addEventListener("input", () => {
     generate3D();
+});
+
+canvas.addEventListener("mousemove", (e) => {
+    previewPos = getXZFromEvent(e);
+    draw();
 });
 
 function redrawClayFromIDs(ids) {
