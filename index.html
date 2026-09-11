@@ -73,6 +73,11 @@
         padding: 10px 20px;
         font-size: 16px;
     }
+
+    #loadFileInput {
+        display: none;
+    }
+
 </style>
 
 </head>
@@ -113,6 +118,11 @@
     <button id="processBtn">加工</button>
     <button id="resetBtn">リセット</button>
     <button id="deleteToolBtn">ヘラを消す</button>
+    <input id="modelNameInput" type="text" placeholder="モデル名">
+    <button id="saveBtn">保存</button>
+    <input id="loadFileInput" type="file" accept=".json">
+    <button id="loadBtn">読み込み</button>
+
 
 </div>
 
@@ -685,6 +695,114 @@ function redrawClayFromIDs(ids) {
 
 
 const model = init_model(25.6);
+
+function getTimestampFilename(model_name="myclay") {
+    const d = new Date();
+
+    const yyyy = d.getFullYear();
+    const mm   = String(d.getMonth() + 1).padStart(2, '0');
+    const dd   = String(d.getDate()).padStart(2, '0');
+
+    const hh   = String(d.getHours()).padStart(2, '0');
+    const mi   = String(d.getMinutes()).padStart(2, '0');
+    const ss   = String(d.getSeconds()).padStart(2, '0');
+
+    return `${model_name}-${yyyy}${mm}${dd}-${hh}${mi}${ss}.json`;
+}
+
+function saveClayModel() {
+    const name = document.getElementById("modelNameInput").value;
+
+    if (name.includes("-")) {
+        alert("モデル名にハイフン（-）は使えません。別の名前を入力してください。");
+        return;  // 保存処理を中断
+    }
+
+    const input = document.getElementById("modelNameInput").value.trim();
+    const model_name = input === "" ? "myclay" : input;
+
+    const filename = getTimestampFilename(model_name);
+
+    const json = JSON.stringify(model, null, 2);
+    const blob = new Blob([json], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;   // ★ ユーザー指定名＋時刻
+    a.click();
+
+    URL.revokeObjectURL(url);
+}
+
+document.getElementById("saveBtn").addEventListener("click", () => {
+    saveClayModel();
+});
+
+
+function loadClayModel(file) {
+    const reader = new FileReader();
+
+    reader.onload = (event) => {
+        try {
+            const data = JSON.parse(event.target.result);
+
+            // ★ ファイル名からモデル名を抽出
+            const filename = file.name;  // 例: myclay-20260911-152233.json
+            // ★ まず .json を削除
+            const noExt = filename.replace(/\.json$/i, "");
+
+            const modelName = noExt.includes("-")
+                ? noExt.split("-")[0]
+                : noExt;
+
+            // ★ input にセット
+            document.getElementById("modelNameInput").value = modelName;
+
+            // ★ 保存データは L と ids のみ
+            model.L = data.L;
+            model.ids = data.ids;
+
+            // ★ profilePoints は空で初期化
+            profilePoints = [];
+
+            // ★ 古い 3D を消す（重要）
+            if (traceGroup) {
+                scene.remove(traceGroup);
+            }
+
+            if (clayGroup) {
+                scene.remove(clayGroup);
+            }
+
+            redrawClayFromIDs(model.ids);
+
+            // ★ 新しい 3D を生成
+            generate3D();
+
+            // ★ Canvas も再描画
+            draw();
+
+        } catch (err) {
+            alert("JSON の読み込みに失敗しました");
+            console.error(err);
+        }
+    };
+
+    reader.readAsText(file);
+}
+
+document.getElementById("loadBtn").addEventListener("click", () => {
+    document.getElementById("loadFileInput").click();
+});
+
+document.getElementById("loadFileInput").addEventListener("change", (e) => {
+    const file = e.target.files[0];
+    if (file) {
+        loadClayModel(file);
+    }
+});
+
 
 const container = document.getElementById("threeContainer");
 const scene = new THREE.Scene();
