@@ -118,7 +118,7 @@
     <button id="processBtn">加工</button>
     <button id="resetBtn">リセット</button>
     <button id="deleteToolBtn">ヘラを消す</button>
-    <input id="modelNameInput" type="text" placeholder="モデル名">
+    <input id="modelNameInput" type="text" placeholder="モデル名を入力">
     <button id="saveBtn">保存</button>
     <input id="loadFileInput" type="file" accept=".json">
     <button id="loadBtn">読み込み</button>
@@ -739,6 +739,38 @@ document.getElementById("saveBtn").addEventListener("click", () => {
     saveClayModel();
 });
 
+function resetModel() {
+
+    // 粘土モデルの初期化
+    const ini_model = init_model(25.6);
+    model.L = ini_model.L;
+    model.ids = ini_model.ids;
+
+    // 加工ストロークの初期化
+    profilePoints = [];
+
+    // 3D の削除
+    if (clayGroup) scene.remove(clayGroup);
+    if (traceGroup) scene.remove(traceGroup);
+
+    clayGroup = null;
+    traceGroup = null;
+
+    // Canvas 初期化
+    draw();
+
+    // 必要なら初期粘土を生成
+    /* redrawClayFromIDs(model.ids);
+    generate3D(); */
+    createClayCube(model.L);
+
+    document.getElementById("modelNameInput").value = "";
+}
+
+
+document.getElementById("resetBtn").addEventListener("click", () => {
+    resetModel();
+});
 
 function loadClayModel(file) {
     const reader = new FileReader();
