@@ -1,1 +1,1 @@
-live-server --open=./index.html --watch=. --port=8088 .
+live-server --open=./M696.html --watch=. --port=8088 .
