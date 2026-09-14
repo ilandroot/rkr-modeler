@@ -899,6 +899,7 @@ document.getElementById("showSection").addEventListener("change", e => {
     } else {
         draw();
     }
+    sectionPlane.visible = showSection.checked;
 });
 const model = init_model(25.6);
 
@@ -1092,6 +1093,33 @@ function createClayCube(L){
 
 const clayCube = createClayCube(model.L);
 scene.add(clayCube);
+
+//--- 3D 断面表示 S
+const sectionPlane = new THREE.Mesh(
+    new THREE.BoxGeometry(model.L, model.L, 0.1),
+    new THREE.MeshBasicMaterial({
+        color: 0x00aaff,
+        transparent: true,
+        depthTest: false,   // ★ これが重要
+        opacity: 0.25,
+        side: THREE.DoubleSide
+    })
+);
+
+// ★ Z-up 座標系では XZ 平面は rotation.x = +90°
+sectionPlane.rotation.x = Math.PI / 2;
+
+// ★ y=0 の位置に置く
+sectionPlane.position.y = 0;
+
+// ★ 粘土キューブより少し手前に出すと確実に見える
+sectionPlane.position.z = 0.1;
+
+scene.add(sectionPlane);
+sectionPlane.visible = true;
+window.sectionPlane = sectionPlane;
+
+//--- 3D 断面表示 E
 
 window.addEventListener("resize", () => {
 
