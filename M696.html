@@ -115,7 +115,7 @@
     </div>
 
     <!--button id="generateBtn">生成</button-->
-    <button id="processBtn">加工</button>
+    <button id="processBtn">加工する</button>
     <button id="resetBtn">リセット</button>
     <button id="deleteToolBtn">ヘラを消す</button>
     <input id="modelNameInput" type="text" placeholder="モデル名を入力">
@@ -811,12 +811,8 @@ function generate3D(){
 }
 
 //-- event handler for 3D
-
-document.getElementById("deleteToolBtn").addEventListener("click", deleteActiveToolsAndRefresh);
-/* drawCanvasAll(); */
-/* draw(); */
-document.getElementById("processBtn").addEventListener("click", () => {
-
+//加工処理
+function processClay(){
     // 生成で描いた赤い球を消す
     if (traceGroup) {
         scene.remove(traceGroup);
@@ -842,6 +838,25 @@ document.getElementById("processBtn").addEventListener("click", () => {
     model.ids = ids_current;
     redrawClayFromIDs(model.ids);
     drawCanvasAll();
+}
+document.getElementById("deleteToolBtn").addEventListener("click", deleteActiveToolsAndRefresh);
+
+const processBtn = document.getElementById("processBtn");
+processBtn.addEventListener("click", () => {
+
+    // ★ UI を先に更新
+    processBtn.disabled = true;
+    processBtn.textContent = "加工中…";
+
+    // ★ 1フレーム待ってから重い処理を開始
+    setTimeout(() => {
+        try {
+            processClay();   // ← 重い処理
+        } finally {
+            processBtn.disabled = false;
+            processBtn.textContent = "加工する";
+        }
+    }, 0);
 });
 
 document.getElementById("rotSlider").addEventListener("input", () => {
