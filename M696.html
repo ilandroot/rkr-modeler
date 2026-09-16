@@ -179,10 +179,9 @@ function getXZFromEvent(e) {
 }
 //-------------------------S
 // 標準的な voxel 変換
-function idToXYZ(octantId, L) {
-    // L は粘土の一辺の長さ（例：25.6）
+function idToXYZ(octantId, length) {
     let x = 0, y = 0, z = 0;
-    let size = L;
+    let size = length;
 
     for (const c of octantId) {
         size /= 2;  // 階層が深くなるほど voxel が小さくなる
@@ -524,7 +523,7 @@ function draw() {
    右：Three.js 3D 粘土ビュー
 ============================ */
 
-function init_model(size = 25.6){
+function init_model(size){
     return {
         L: size,
         ids: ["A","B","C","D","E","F","G","H"]
@@ -916,7 +915,7 @@ document.getElementById("showSection").addEventListener("change", e => {
     }
     sectionPlane.visible = showSection.checked;
 });
-const model = init_model(25.6);
+const model = init_model(L);
 
 function getTimestampFilename(model_name="myclay") {
     const d = new Date();
@@ -964,7 +963,7 @@ document.getElementById("saveBtn").addEventListener("click", () => {
 function resetModel() {
 
     // 粘土モデルの初期化
-    const ini_model = init_model(25.6);
+    const ini_model = init_model(L);
     model.L = ini_model.L;
     model.ids = ini_model.ids;
 
