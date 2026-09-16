@@ -716,6 +716,94 @@ function cut_sphere(ids_current, L, sphereCenter, R){
     ids_current = new_ids;
     return ids_current;
 }
+//-- カプセルヘラ実装 S
+function insideCapsule(p, P0, P1, R) {
+    const closest = closestPointOnSegment(P0, P1, p);
+    return distanceSquared(p, closest) <= R*R;
+}
+
+function intersectsCapsule(P0, P1, R, C, size) {
+    const closest = closestPointOnSegment(P0, P1, C);
+    const d2 = distanceSquared(C, closest);
+
+    const h = size / 2;
+    const cubeRadius = Math.sqrt(3 * h * h);
+
+    return d2 <= (R + cubeRadius) * (R + cubeRadius);
+}
+
+//カプセル形状で削る。
+function carveCapsule(id, L, P0, P1, R, maxDepth) {
+    const { x, y, z, size } = octantCenter(id, L);
+    const C = { x, y, z };
+
+    // 完全外
+    if (!intersectsCapsule(P0, P1, R, C, size)) {
+        return [id];
+    }
+
+    // 完全内包
+    const corners = cubeCorners(x, y, z, size);
+    let allInside = true;
+    for (const p of corners) {
+        if (!insideCapsule(p, P0, P1, R)) {
+            allInside = false;
+            break;
+        }
+    }
+    if (allInside) {
+        return [];
+    }
+
+    // 部分交差 → 細分化
+    if (id.length >= maxDepth) {
+        return [];
+    }
+
+    const children = generateChildren(id);
+    let result = [];
+    for (const child of children) {
+        result.push(...carveCapsule(child, L, P0, P1, R, maxDepth));
+    }
+    return result;
+}
+// 中心点、長さ、angleから、円柱端点を算出する。
+function capsuleEndpoints(cx, cy, len, angle) {
+    // 角度をラジアンに変換
+    const rad = angle * Math.PI / 180;
+
+    // XZ 平面での方向ベクトル
+    const dx = Math.cos(rad);
+    const dz = Math.sin(rad);
+
+    // 正規化（念のため）
+    const mag = Math.sqrt(dx*dx + dz*dz);
+    const nx = dx / mag;
+    const nz = dz / mag;
+
+    // 円柱部分の半分の長さ
+    const half = len / 2;
+
+    // P0, P1 を計算
+    const P0 = { x: cx - nx * half, y: 0, z: cy - nz * half };
+    const P1 = { x: cx + nx * half, y: 0, z: cy + nz * half };
+
+    return { P0, P1 };
+}
+
+function cut_capsule(ids_current, L, P0, P1, R){
+    const maxDepth = 8;
+    let new_ids = [];
+
+    for (const id of ids_current) {
+        const result = carveCapsule(id, L, P0, P1, R, maxDepth);
+        new_ids.push(...result);
+    }
+
+    return new_ids;
+}
+
+//--カプセルヘラ実装 E
 
 function classifyCell(cell) {
     const count = cell.points.length;
