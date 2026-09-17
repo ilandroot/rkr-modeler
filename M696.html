@@ -561,6 +561,21 @@ function generateRotationalPoints(p, steps) {
     return pts;
 }
 
+function generateRotationalPairPoints(p1, p2, steps) {
+    const pts = [];
+    for (let i = 0; i < steps; i++) {
+        const theta = (i / steps) * Math.PI * 2;
+        const x1 = p1.x * Math.cos(theta);
+        const y1 = p1.x * Math.sin(theta);  // y 軸まわりの回転
+        const z1 = p1.z;
+        const x2 = p2.x * Math.cos(theta);
+        const y2 = p2.x * Math.sin(theta);  // y 軸まわりの回転
+        const z2 = p2.z;
+        pts.push([{ x: x1, y: y1, z: z1 }, { x: x2, y: y2, z: z2 }]);
+    }
+    return pts;
+}
+
 function carveSphereAtPoints(points, radius) {
     // 今は「削った位置に赤い球を置く」だけ
     points.forEach(pt => {
@@ -717,12 +732,44 @@ function cut_sphere(ids_current, L, sphereCenter, R){
     return ids_current;
 }
 //-- カプセルヘラ実装 S
+function distanceSquared(a, b) {
+    const dx = a.x - b.x;
+    const dy = a.y - b.y;
+    const dz = a.z - b.z;
+    return dx*dx + dy*dy + dz*dz;
+}
+
+function closestPointOnSegment(P0, P1, C) {
+    // 球ヘラモード（P0 = P1）のとき
+    if (P0.x === P1.x && P0.y === P1.y && P0.z === P1.z) {
+        return P0;  // 最近点は中心そのもの
+    }
+
+    const vx = P1.x - P0.x;
+    const vy = P1.y - P0.y;
+    const vz = P1.z - P0.z;
+
+    const wx = C.x - P0.x;
+    const wy = C.y - P0.y;
+    const wz = C.z - P0.z;
+
+    const vv = vx*vx + vy*vy + vz*vz;
+    const t = Math.max(0, Math.min(1, (wx*vx + wy*vy + wz*vz) / vv));
+
+    return {
+        x: P0.x + t * vx,
+        y: P0.y + t * vy,
+        z: P0.z + t * vz
+    };
+}
+
 function insideCapsule(p, P0, P1, R) {
     const closest = closestPointOnSegment(P0, P1, p);
     return distanceSquared(p, closest) <= R*R;
 }
 
 function intersectsCapsule(P0, P1, R, C, size) {
+
     const closest = closestPointOnSegment(P0, P1, C);
     const d2 = distanceSquared(C, closest);
 
@@ -913,11 +960,13 @@ function processClay(){
         if (p.processed) return;
 
         const clayPos = canvasToClay(p.x, p.z);
-        const pts3d = generateRotationalPoints(clayPos, steps);
-
+        const { P0, P1 } = capsuleEndpoints(clayPos.x, clayPos.z, 0, 0);
+        const pts3d = generateRotationalPairPoints(P0, P1, steps) 
+        
         pts3d.forEach(pt => {
-            ids_current = cut_sphere(ids_current, model.L, pt, R);
+            ids_current = cut_capsule(ids_current, model.L, pt[0], pt[1], R);
         });
+
 
         p.processed = true;
     });
