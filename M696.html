@@ -110,8 +110,13 @@
     </div>
 
     <div class="control-group">
-        <label>断面分割数 steps_profile</label>
-        <input type="range" id="profileSlider" min="5" max="100" value="30">
+        <label>ヘラの長さ len</label>
+        <input type="range" id="lenSlider" min="0" max="50" value="0">
+    </div>
+
+    <div class="control-group">
+        <label>ヘラの傾斜角度 angle</label>
+        <input type="range" id="angSlider" min="0" max="180" value="0">
     </div>
 
     <!--button id="generateBtn">生成</button-->
@@ -126,8 +131,6 @@
     <input type="checkbox" id="showSection" checked>
     断面表示
     </label>
-
-
 
 </div>
 
@@ -945,6 +948,18 @@ function generate3D(){
 }
 
 //-- event handler for 3D
+let length = 0;    // カプセルヘラの長さ
+let angle = 0;  // カプセルヘラの傾斜角度
+document.getElementById("lenSlider").addEventListener("input", (e) => {
+    length = Number(e.target.value);
+    console.log("length="+length);
+    draw();
+});
+document.getElementById("angSlider").addEventListener("input", (e) => {
+    angle = Number(e.target.value);
+    console.log("angle="+angle);
+    draw();
+});
 //加工処理
 function processClay(){
     // 生成で描いた赤い球を消す
@@ -960,7 +975,7 @@ function processClay(){
         if (p.processed) return;
 
         const clayPos = canvasToClay(p.x, p.z);
-        const { P0, P1 } = capsuleEndpoints(clayPos.x, clayPos.z, 0, 0);
+        const { P0, P1 } = capsuleEndpoints(clayPos.x, clayPos.z, length, angle);
         const pts3d = generateRotationalPairPoints(P0, P1, steps) 
         
         pts3d.forEach(pt => {
@@ -996,10 +1011,6 @@ processBtn.addEventListener("click", () => {
 });
 
 document.getElementById("rotSlider").addEventListener("input", () => {
-    generate3D();
-});
-
-document.getElementById("profileSlider").addEventListener("input", () => {
     generate3D();
 });
 
