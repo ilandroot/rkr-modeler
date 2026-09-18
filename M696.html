@@ -204,6 +204,90 @@ function idToXYZ(octantId, length) {
     return { x, y, z };
 }
 
+function drawCapsuleEnd(x0, z0, x1, z1, R) {
+
+    // canvas の Z 軸反転補正
+    const dx = x1 - x0;
+    const dz = -(z1 - z0);  // ★ Z反転補正
+
+    // 軸線の角度（数学座標系）
+    let angle = Math.atan2(dz, dx);
+
+    // ★ canvas の向きに合わせて 90°補正
+    angle += Math.PI / 2;
+
+    ctx.beginPath();
+
+    // ★ 円弧の向きを正しくする（開始と終了の順序が重要）
+    ctx.arc(x0, z0, R, angle + Math.PI/2, angle - Math.PI/2);
+
+    ctx.stroke();
+}
+
+function clayToCanvas(x_clay, z_clay) {
+    const canvas = document.getElementById("xzCanvas");
+    const w = canvas.width;
+    const h = canvas.height;
+
+    const scale = Math.min(w, h) * CANVAS_ZOOM_SCALE / model.L;
+    const cx = w / 2;
+    const cz = h / 2;
+
+    // ★ clay座標は 0〜L の実座標なのでそのまま使う
+    const x_canvas = cx + x_clay * scale;
+    const z_canvas = cz - z_clay * scale;
+
+    return { x: x_canvas, z: z_canvas };
+}
+
+function drawCapsuleOnCanvas(ctx, P0, P1, R_canvas, color="rgba(0,120,255,0.8)") {
+
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+
+    // 円（左）
+    ctx.beginPath();
+    ctx.arc(P0.x, P0.z, R_canvas, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // 円（右）
+    ctx.beginPath();
+    ctx.arc(P1.x, P1.z, R_canvas, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // 接線 2 本
+    const dx = P1.x - P0.x;
+    const dz = P1.z - P0.z;
+    const len = Math.sqrt(dx*dx + dz*dz);
+
+    const nx = -dz / len;
+    const nz =  dx / len;
+
+    const left_top_x = P0.x + nx * R_canvas;
+    const left_top_z = P0.z + nz * R_canvas;
+
+    const left_bottom_x = P0.x - nx * R_canvas;
+    const left_bottom_z = P0.z - nz * R_canvas;
+
+    const right_top_x = P1.x + nx * R_canvas;
+    const right_top_z = P1.z + nz * R_canvas;
+
+    const right_bottom_x = P1.x - nx * R_canvas;
+    const right_bottom_z = P1.z - nz * R_canvas;
+
+    // 上側接線
+    ctx.beginPath();
+    ctx.moveTo(left_top_x, left_top_z);
+    ctx.lineTo(right_top_x, right_top_z);
+    ctx.stroke();
+
+    // 下側接線
+    ctx.beginPath();
+    ctx.moveTo(left_bottom_x, left_bottom_z);
+    ctx.lineTo(right_bottom_x, right_bottom_z);
+    ctx.stroke();
+}
+
 function updateSectionView() {
 
     const canvas = document.getElementById("xzCanvas");
@@ -312,18 +396,31 @@ function updateSectionView() {
     ctx.lineWidth = 2;
 
     for (const p of profilePoints) {
-        ctx.beginPath();
 
-        const w = canvas.width;
-        const h = canvas.height;
-        const scale = Math.min(w, h) * CANVAS_ZOOM_SCALE / L;
+        // 断面上のヘラ軸（P0,P1）を生成
+        const { P0, P1 } = capsuleEndpoints(p.x, p.z, p.length, p.angle);
 
+        // canvas 座標に変換
+        const cP0 = clayToCanvas(P0.x, P0.z);
+        const cP1 = clayToCanvas(P1.x, P1.z);
+
+        // 半径を canvas スケールに変換
+        const scale = Math.min(canvas.width, canvas.height) * CANVAS_ZOOM_SCALE / model.L;
         const R_canvas = p.R * scale;
 
-        ctx.strokeStyle = p.processed ? "#999" : "#0077ff";
+        ctx.strokeStyle = "#0077ff";
+        ctx.lineWidth = 2;
 
-        ctx.arc(p.x, p.z, R_canvas, 0, Math.PI * 2);
-        ctx.stroke();
+         if (p.length === 0) {
+            // 球ヘラ（len=0）は円として描く
+            ctx.beginPath();
+            ctx.arc(cP0.x, cP0.z, R_canvas, 0, Math.PI * 2);
+            ctx.stroke();
+        } else {
+            // カプセル形状（端点は円で描く）
+            drawCapsuleOnCanvas(ctx, cP0, cP1, R_canvas, "#0077ff");
+
+        }
     }
 
     // === 回転軸（センターライン） ===
@@ -342,20 +439,38 @@ function updateSectionView() {
     ctx.lineTo(canvas.width, canvas.height / 2);
     ctx.stroke();
 
-    // ヘラのプレビュー表示
+    // === ヘラのプレビュー表示 ===
     if (previewPos) {
-        let R_prev = Number(document.getElementById("radiusSlider").value);
-        const w = canvas.width;
-        const h = canvas.height;
-        const scale = Math.min(w, h) * CANVAS_ZOOM_SCALE / L;
+
+        const R_prev = Number(document.getElementById("radiusSlider").value);
+        const len_prev = Number(document.getElementById("lenSlider").value);
+        const ang_prev = Number(document.getElementById("angSlider").value);
+
+        const scale = Math.min(canvas.width, canvas.height) * CANVAS_ZOOM_SCALE / L;
         const R_canvas_prev = R_prev * scale;
 
+        // ★ previewPos は clay座標なのでそのまま使える
+        const { P0, P1 } = capsuleEndpoints(previewPos.x, previewPos.z, len_prev, ang_prev);
+
+        // canvas座標へ変換
+        const cP0 = clayToCanvas(P0.x, P0.z);
+        const cP1 = clayToCanvas(P1.x, P1.z);
 
         ctx.strokeStyle = "rgba(0, 120, 255, 0.3)";
-        ctx.beginPath();
-        ctx.arc(previewPos.x, previewPos.z, R_canvas_prev, 0, Math.PI * 2);
-        ctx.stroke();
+        ctx.lineWidth = 2;
+
+        if (len_prev === 0) {
+            // 球ヘラ
+            ctx.beginPath();
+            ctx.arc(cP0.x, cP0.z, R_canvas_prev, 0, Math.PI * 2);
+            ctx.stroke();
+        } else {
+            // === カプセル断面（円＋接線 2 本） ===
+            drawCapsuleOnCanvas(ctx, cP0, cP1, R_canvas_prev, "rgba(0,120,255,0.3)");
+
+        }
     }
+
     console.log("断面＋グリッド＋軸 表示完了");
 }
 
@@ -382,12 +497,17 @@ canvas.addEventListener("click", (e) => {
 
     const p_canvas = getXZFromEvent(e);
 
+    const p_clay = canvasToClay(p_canvas.x, p_canvas.z);
+
     profilePoints.push({
-        x: p_canvas.x,
-        z: p_canvas.z,
-        R: R,              // ★ スライダーの半径を保存
-        processed: false   // ★ 新規ヘラは未加工
+        x: p_clay.x,     // ★ clay座標で保存
+        z: p_clay.z,     // ★ clay座標で保存
+        R: R,
+        length: length,
+        angle: angle,
+        processed: false
     });
+
 
     // Canvas描画（断面図切替付き）
     drawCanvasAll();
@@ -395,7 +515,6 @@ canvas.addEventListener("click", (e) => {
 
     previewPos = null;
 });
-
 
 const L = 25.6;
 
@@ -454,7 +573,7 @@ function draw() {
         ctx.stroke();
     }
 
-    // ★ 赤い軸線（復活）
+    // ★ 赤い軸線
     ctx.strokeStyle = "#ff4444";
     ctx.lineWidth = 2;
 
@@ -470,57 +589,59 @@ function draw() {
 
     drawClaySquare();
 
-    // 以下はヘラ描画（そのまま）
-    ctx.strokeStyle = "#0077ff";
-    ctx.lineWidth = 2;
+    // === ヘラ描画（カプセル断面に統一） ===
+    const w = canvas.width;
+    const h = canvas.height;
+    const scale = Math.min(w, h) * CANVAS_ZOOM_SCALE / L;
 
     for (const p of profilePoints) {
-        ctx.beginPath();
 
-        const w = canvas.width;
-        const h = canvas.height;
-        const scale = Math.min(w, h) * CANVAS_ZOOM_SCALE / L;
+        const { P0, P1 } = capsuleEndpoints(p.x, p.z, p.length, p.angle);
+
+        const cP0 = clayToCanvas(P0.x, P0.z);
+        const cP1 = clayToCanvas(P1.x, P1.z);
 
         const R_canvas = p.R * scale;
 
         ctx.strokeStyle = p.processed ? "#999" : "#0077ff";
 
-        ctx.arc(p.x, p.z, R_canvas, 0, Math.PI * 2);
-        ctx.stroke();
+        if (p.length === 0) {
+            // 球ヘラ
+            ctx.beginPath();
+            ctx.arc(cP0.x, cP0.z, R_canvas, 0, Math.PI * 2);
+            ctx.stroke();
+        } else {
+            // カプセル断面
+            drawCapsuleOnCanvas(ctx, cP0, cP1, R_canvas, ctx.strokeStyle);
+        }
     }
 
-    // === 回転軸（センターライン） ===
-    ctx.strokeStyle = "#ff4444";   // 目立つ赤
-    ctx.lineWidth = 2;
-
-    // 縦のセンターライン（回転軸）
-    ctx.beginPath();
-    ctx.moveTo(canvas.width / 2, 0);
-    ctx.lineTo(canvas.width / 2, canvas.height);
-    ctx.stroke();
-
-    // 横のセンターライン（高さの基準）
-    ctx.beginPath();
-    ctx.moveTo(0, canvas.height / 2);
-    ctx.lineTo(canvas.width, canvas.height / 2);
-    ctx.stroke();
-
-    // ヘラのプレビュー表示
+    // === プレビュー（カプセル断面に統一） ===
     if (previewPos) {
-        let R_prev = Number(document.getElementById("radiusSlider").value);
-        const w = canvas.width;
-        const h = canvas.height;
-        const scale = Math.min(w, h) * CANVAS_ZOOM_SCALE / L;
+
+        const R_prev = Number(document.getElementById("radiusSlider").value);
+        const len_prev = Number(document.getElementById("lenSlider").value);
+        const ang_prev = Number(document.getElementById("angSlider").value);
+
         const R_canvas_prev = R_prev * scale;
 
+        const { P0, P1 } = capsuleEndpoints(previewPos.x, previewPos.z, len_prev, ang_prev);
+
+        const cP0 = clayToCanvas(P0.x, P0.z);
+        const cP1 = clayToCanvas(P1.x, P1.z);
 
         ctx.strokeStyle = "rgba(0, 120, 255, 0.3)";
-        ctx.beginPath();
-        ctx.arc(previewPos.x, previewPos.z, R_canvas_prev, 0, Math.PI * 2);
-        ctx.stroke();
-    }
 
+        if (len_prev === 0) {
+            ctx.beginPath();
+            ctx.arc(cP0.x, cP0.z, R_canvas_prev, 0, Math.PI * 2);
+            ctx.stroke();
+        } else {
+            drawCapsuleOnCanvas(ctx, cP0, cP1, R_canvas_prev, ctx.strokeStyle);
+        }
+    }
 }
+
 
 /* ============================
    右：Three.js 3D 粘土ビュー
@@ -551,6 +672,7 @@ function canvasToClay(x_canvas, z_canvas) {
 
     return { x: x_clay, z: z_clay };
 }
+
 
 function generateRotationalPoints(p, steps) {
     const pts = [];
@@ -914,7 +1036,6 @@ function generate3D(){
 
     const steps = Number(document.getElementById("rotSlider").value);
 
-    // 古い軌跡を削除
     if (traceGroup) {
         scene.remove(traceGroup);
         traceGroup = null;
@@ -922,23 +1043,48 @@ function generate3D(){
 
     traceGroup = new THREE.Group();
 
-    profilePoints.forEach(p_canvas => {
+    profilePoints.forEach(p => {
+        if (p.processed) return;
 
-        if (p_canvas.processed) return;
+        // ★ p.x, p.z はすでに clay座標
+        const clayPos = { x: p.x, z: p.z };
 
-        const p_clay = canvasToClay(p_canvas.x, p_canvas.z);
-        const pts3d = generateRotationalPoints(p_clay, steps);
+        const { P0, P1 } = capsuleEndpoints(clayPos.x, clayPos.z, p.length, p.angle);
+        const pts3d = generateRotationalPairPoints(P0, P1, steps);
 
         pts3d.forEach(pt => {
-            const geo = new THREE.SphereGeometry(p_canvas.R, 16, 16);
+            const geo = new THREE.SphereGeometry(p.R, 16, 16);
             const mat = new THREE.MeshPhongMaterial({ color: 0xff4444 });
             const mesh = new THREE.Mesh(geo, mat);
-            mesh.position.set(pt.x, pt.y, pt.z);
+            mesh.position.set(pt[0].x, pt[0].y, pt[0].z);
             traceGroup.add(mesh);
+            const mesh2 = new THREE.Mesh(geo, mat);
+            mesh2.position.set(pt[1].x, pt[1].y, pt[1].z);
+            traceGroup.add(mesh2);
+
+            // --- cylinder（軸線） ---
+            const dx = pt[1].x - pt[0].x;
+            const dy = pt[1].y - pt[0].y;
+            const dz = pt[1].z - pt[0].z;
+            const len = Math.sqrt(dx*dx + dy*dy + dz*dz);
+
+            const mx = (pt[0].x + pt[1].x) / 2;
+            const my = (pt[0].y + pt[1].y) / 2;
+            const mz = (pt[0].z + pt[1].z) / 2;
+
+            const dir = new THREE.Vector3(dx, dy, dz).normalize();
+            const axis = new THREE.Vector3(0, 1, 0);
+            const quaternion = new THREE.Quaternion().setFromUnitVectors(axis, dir);
+
+            const geoCyl = new THREE.CylinderGeometry(p.R, p.R, len, 16);
+            const cyl = new THREE.Mesh(geoCyl, mat);
+            cyl.position.set(mx, my, mz);
+            cyl.quaternion.copy(quaternion);
+
+            traceGroup.add(cyl);
         });
     });
 
-    // ★ ここが重要：traceGroup が空なら scene に追加しない
     if (traceGroup.children.length === 0) {
         traceGroup = null;
         return;
@@ -953,16 +1099,19 @@ let angle = 0;  // カプセルヘラの傾斜角度
 document.getElementById("lenSlider").addEventListener("input", (e) => {
     length = Number(e.target.value);
     console.log("length="+length);
-    draw();
+    // Canvas描画（断面図切替付き）
+    drawCanvasAll();
+    generate3D();
 });
 document.getElementById("angSlider").addEventListener("input", (e) => {
     angle = Number(e.target.value);
     console.log("angle="+angle);
-    draw();
+    // Canvas描画（断面図切替付き）
+    drawCanvasAll();
+    generate3D();
 });
 //加工処理
 function processClay(){
-    // 生成で描いた赤い球を消す
     if (traceGroup) {
         scene.remove(traceGroup);
         traceGroup = null;
@@ -974,14 +1123,15 @@ function processClay(){
     profilePoints.forEach(p => {
         if (p.processed) return;
 
-        const clayPos = canvasToClay(p.x, p.z);
-        const { P0, P1 } = capsuleEndpoints(clayPos.x, clayPos.z, length, angle);
-        const pts3d = generateRotationalPairPoints(P0, P1, steps) 
-        
-        pts3d.forEach(pt => {
-            ids_current = cut_capsule(ids_current, model.L, pt[0], pt[1], R);
-        });
+        // ★ p.x, p.z はすでに clay座標
+        const clayPos = { x: p.x, z: p.z };
 
+        const { P0, P1 } = capsuleEndpoints(clayPos.x, clayPos.z, p.length, p.angle);
+        const pts3d = generateRotationalPairPoints(P0, P1, steps);
+
+        pts3d.forEach(pt => {
+            ids_current = cut_capsule(ids_current, model.L, pt[0], pt[1], p.R);
+        });
 
         p.processed = true;
     });
@@ -990,6 +1140,7 @@ function processClay(){
     redrawClayFromIDs(model.ids);
     drawCanvasAll();
 }
+
 document.getElementById("deleteToolBtn").addEventListener("click", deleteActiveToolsAndRefresh);
 
 const processBtn = document.getElementById("processBtn");
@@ -1025,9 +1176,12 @@ function drawCanvasAll(){
     }
 }
 canvas.addEventListener("mousemove", (e) => {
-    previewPos = getXZFromEvent(e);
+    const p_canvas = getXZFromEvent(e);
+    previewPos = canvasToClay(p_canvas.x, p_canvas.z);
+    
     drawCanvasAll();
 });
+
 
 function redrawClayFromIDs(ids) {
 
