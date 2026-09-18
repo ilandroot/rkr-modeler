@@ -1098,14 +1098,14 @@ let length = 0;    // カプセルヘラの長さ
 let angle = 0;  // カプセルヘラの傾斜角度
 document.getElementById("lenSlider").addEventListener("input", (e) => {
     length = Number(e.target.value);
-    console.log("length="+length);
+    /* console.log("length="+length); */
     // Canvas描画（断面図切替付き）
     drawCanvasAll();
     generate3D();
 });
 document.getElementById("angSlider").addEventListener("input", (e) => {
     angle = Number(e.target.value);
-    console.log("angle="+angle);
+    /* console.log("angle="+angle); */
     // Canvas描画（断面図切替付き）
     drawCanvasAll();
     generate3D();
