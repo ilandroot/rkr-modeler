@@ -434,6 +434,9 @@ function updateSectionView() {
         const R_canvas = p.R * scale;
 
         ctx.strokeStyle = "#0077ff";
+        // ★ 加工済みならグレー、未加工なら青
+        const color = p.processed ? "#999" : "#0077ff";
+        ctx.strokeStyle = color;
         ctx.lineWidth = 2;
 
          if (p.length === 0) {
@@ -443,7 +446,7 @@ function updateSectionView() {
             ctx.stroke();
         } else {
             // カプセル形状（端点は円で描く）
-            drawCapsuleOnCanvas(ctx, cP0, cP1, R_canvas, "#0077ff");
+            drawCapsuleOnCanvas(ctx, cP0, cP1, R_canvas, color);
 
         }
     }
