@@ -191,19 +191,18 @@ MIT
 
 ## 参照ライブラリ
 
-
-Three.js
+● Three.js
 用途：3D 表示、カプセルヘラの 3D モデル、カメラ操作、ライト、レンダリング
 
 使用機能：Scene, PerspectiveCamera, Mesh, SphereGeometry, CylinderGeometry, MeshStandardMaterial, OrbitControls
 
-URL：<https://threejs.org/>
-※ 本プロジェクトでは Three.js を npm ではなく **CDN（esm.sh）経由**で読み込んでいます。
-
-OrbitControls（Three.js付属）
+● OrbitControls（Three.js付属）
 用途：XZビューと3Dビューのカメラ操作
 
 備考：Three.js examples から読み込み
+
+URL：<https://threejs.org/>
+※ 本プロジェクトでは Three.js を npm ではなく **CDN（esm.sh）経由**で読み込んでいます。
 
 ## 今後の予定（Roadmap）
 
