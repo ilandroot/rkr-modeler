@@ -78,6 +78,18 @@
         display: none;
     }
 
+.angle-btn {
+    background: #eee;
+    border: 1px solid #ccc;
+    padding: 4px 6px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.angle-btn:hover {
+    background: #e0e0e0;
+}
+
 </style>
 
 </head>
@@ -118,6 +130,19 @@
         <label>ヘラの傾斜角度 angle</label>
         <input type="range" id="angSlider" min="0" max="180" value="0">
     </div>
+
+    <button id="angleToggleBtn" class="angle-btn">
+    <svg width="20" height="20" viewBox="0 0 20 20">
+        <!-- 0° -->
+        <line x1="2" y1="14" x2="18" y2="14" stroke="currentColor" stroke-width="1" stroke-linecap="round" />
+        <!-- 45° -->
+        <line x1="10" y1="14" x2="16" y2="8" stroke="currentColor" stroke-width="1" stroke-linecap="round" />
+        <!-- 90° -->
+        <line x1="10" y1="14" x2="10" y2="6" stroke="currentColor" stroke-width="1" stroke-linecap="round" />
+        <!-- 135° -->
+        <line x1="10" y1="14" x2="4" y2="8" stroke="currentColor" stroke-width="1" stroke-linecap="round" />
+    </svg>
+    </button>
 
     <!--button id="generateBtn">生成</button-->
     <button id="processBtn">加工する</button>
@@ -642,6 +667,24 @@ function draw() {
     }
 }
 
+const angleSteps = [0, 45, 90, 135];
+let angleIndex = 0;
+
+const angleBtn = document.getElementById("angleToggleBtn");
+
+angleBtn.addEventListener("click", () => {
+    angleIndex = (angleIndex + 1) % angleSteps.length;
+    const a = angleSteps[angleIndex];
+
+    // スライダーに反映
+    const slider = document.getElementById("angSlider");
+    slider.value = a;
+
+    // 内部状態に反映
+    angle = a;
+
+    drawCanvasAll();
+});
 
 /* ============================
    右：Three.js 3D 粘土ビュー
