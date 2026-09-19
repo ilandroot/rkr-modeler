@@ -189,6 +189,21 @@ BREP のような複雑な境界更新は不要で、
 ## ライセンス
 MIT
 
+## 参照ライブラリ
+本プロジェクトでは Three.js を npm ではなく **CDN（esm.sh）経由**で読み込んでいます。
+
+Three.js
+用途：3D 表示、カプセルヘラの 3D モデル、カメラ操作、ライト、レンダリング
+
+使用機能：Scene, PerspectiveCamera, Mesh, SphereGeometry, CylinderGeometry, MeshStandardMaterial, OrbitControls
+
+URL：<https://threejs.org/>
+
+OrbitControls（Three.js付属）
+用途：XZビューと3Dビューのカメラ操作
+
+備考：Three.js examples から読み込み
+
 ## 今後の予定（Roadmap）
 
 1. ヘラ形状の拡張  
