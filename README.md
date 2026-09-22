@@ -210,7 +210,7 @@ URL：<https://threejs.org/>
 
 ## 関連動画
 
-[Youtube](https://www.youtube.com/watch?v=s4AV8Jvkyx8)
+[Youtube 操作説明動画](https://www.youtube.com/watch?v=s4AV8Jvkyx8)
 
 ## 今後の予定（Roadmap）
 1. データ出力機能（3Dプリンター出力用）  
