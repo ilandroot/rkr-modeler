@@ -214,6 +214,8 @@ document.getElementById("radiusSlider").addEventListener("input", (e) => {
 });
 
 canvas.addEventListener("wheel", (e) => {
+    // Ctrlキーを押しているときだけ半径変更（誤操作防止）
+    /* if (!e.ctrlKey) return; */
     e.preventDefault();   // ページスクロールを止める
 
     const delta = e.deltaY;
@@ -236,6 +238,23 @@ canvas.addEventListener("wheel", (e) => {
         // スライダーにも反映
         const slider = document.getElementById("angSlider");
         slider.value = A;
+
+    } else if (e.altKey) {
+        // ★ Alt + ホイール → 角度変更
+        const sliderR = document.getElementById("radiusSlider");
+        R = parseInt(sliderR.value);
+
+        // ホイール方向で増減
+        if (e.deltaY < 0) {
+            R += 1; // 上スクロール → 半径を大きく
+        } else {
+            R -= 1; // 下スクロール → 半径を小さく
+        }
+
+        // 範囲内に収める
+        R = Math.max(parseInt(sliderR.min), Math.min(parseInt(sliderR.max), R));
+
+        sliderR.value = R;
 
     } else {
         // ★ 通常ホイール → 長さ変更（既存の動作）
