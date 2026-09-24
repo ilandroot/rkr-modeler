@@ -53,22 +53,6 @@
     }
 
     /* 下段：操作パネル */
-    #controls {
-        height: 30vh;
-        padding: 10px;
-        background: #ffffff;
-        display: flex;
-        align-items: center;
-        gap: 20px;
-        border-top: 2px solid #ccc;
-    }
-
-    .control-group {
-        display: flex;
-        flex-direction: column;
-        font-size: 14px;
-    }
-
     button {
         padding: 10px 20px;
         font-size: 16px;
@@ -89,6 +73,31 @@
 .angle-btn:hover {
     background: #e0e0e0;
 }
+
+#controls {
+    position: relative;
+    padding: 8px 12px 12px 12px; /* 全体の余白を小さく */
+    padding-top: 32px; /* タイトルの高さ分だけ確保 */
+    height: auto; /* ★ これが重要 */
+}
+#controlsTitle {
+    position: absolute;
+    top: 4px;
+    left: 8px;
+    font-size: 14px;
+    font-weight: bold;
+    margin: 0;
+}
+
+#versionLabel {
+    position: absolute;
+    top: 4px;
+    right: 8px;
+    font-size: 12px;
+    color: #888;
+    pointer-events: none;
+}
+
 
 </style>
 
@@ -111,14 +120,18 @@
 
 <!-- 下：操作パネル -->
 <div id="controls">
-    <div class="control-group">
-        <label>ヘラ半径</label>
-        <input type="range" id="radiusSlider" min="1" max="10" value="4">
-    </div>
+    <div id="versionLabel">M696 v1.0.1</div>
+
+    <h3 id="controlsTitle" style="margin-bottom:4px;">操作パネル</h3>
 
     <div class="control-group">
         <label>回転分割数</label>
         <input type="range" id="rotSlider" min="10" max="180" value="90">
+    </div>
+
+    <div class="control-group">
+        <label>ヘラ半径</label>
+        <input type="range" id="radiusSlider" min="1" max="10" value="4">
     </div>
 
     <div class="control-group">
@@ -156,6 +169,7 @@
     <input type="checkbox" id="showSection" checked>
     断面表示
     </label>
+
 
 </div>
 
