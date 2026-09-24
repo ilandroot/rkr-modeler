@@ -199,6 +199,50 @@ document.getElementById("radiusSlider").addEventListener("input", (e) => {
     drawCanvasAll();
 });
 
+canvas.addEventListener("wheel", (e) => {
+    e.preventDefault();   // ページスクロールを止める
+
+    const delta = e.deltaY;
+
+    if (e.shiftKey) {
+        // ★ Shift + ホイール → 角度変更
+        let A = angle;
+
+        if (delta < 0) {
+            A += 2;   // 上回転 → 角度を増やす
+        } else {
+            A -= 2;   // 下回転 → 角度を減らす
+        }
+
+        // 角度の範囲（必要なら調整）
+        A = Math.max(0, Math.min(A, 180));
+
+        angle = A;
+
+        // スライダーにも反映
+        const slider = document.getElementById("angSlider");
+        slider.value = A;
+
+    } else {
+        // ★ 通常ホイール → 長さ変更（既存の動作）
+        let L = length;
+
+        if (delta < 0) {
+            L += 1;
+        } else {
+            L -= 1;
+        }
+
+        L = Math.max(0, Math.min(L, 200));
+        length = L;
+
+        const slider = document.getElementById("lenSlider");
+        slider.value = L;
+    }
+
+    drawCanvasAll();
+}, { passive: false });
+
 function getXZFromEvent(e) {
     const rect = canvas.getBoundingClientRect();
     const x = e.clientX - rect.left;
