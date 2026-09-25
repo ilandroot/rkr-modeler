@@ -876,44 +876,6 @@ function cubeCorners(cx, cy, cz, size) {
     ];
 }
 
-// 球の内部判定
-function insideSphere(x, y, z, cx, cy, cz, R) {
-  const dx = x - cx;
-  const dy = y - cy;
-  const dz = z - cz;
-  return (dx*dx + dy*dy + dz*dz) <= R*R;
-}
-
-// 球と cube の干渉判定
-function intersectsSphereCube(sphereCenter, R, cx, cy, cz, size) {
-    const h = size / 2;
-
-    // cube の範囲
-    const minX = cx - h;
-    const maxX = cx + h;
-    const minY = cy - h;
-    const maxY = cy + h;
-    const minZ = cz - h;
-    const maxZ = cz + h;
-
-    // 球の中心
-    const sx = sphereCenter.x;
-    const sy = sphereCenter.y;
-    const sz = sphereCenter.z;
-
-    // 球中心から cube に最も近い点を求める
-    const px = Math.max(minX, Math.min(sx, maxX));
-    const py = Math.max(minY, Math.min(sy, maxY));
-    const pz = Math.max(minZ, Math.min(sz, maxZ));
-
-    // 距離判定
-    const dx = px - sx;
-    const dy = py - sy;
-    const dz = pz - sz;
-
-    return (dx*dx + dy*dy + dz*dz) <= R*R;
-}
-
 // 親IDから8つの子IDを生成する（Octree）
 function generateChildren(id) {
     return [
@@ -928,58 +890,6 @@ function generateChildren(id) {
     ];
 }
 
-function carveSphere(id, L, sphereCenter, R, maxDepth) {
-    const { x, y, z, size } = octantCenter(id, L);
-
-    // cube の 8頂点を求める
-    const corners = cubeCorners(x, y, z, size);
-
-    // 完全内包チェック
-    let allInside = true;
-    for (const p of corners) {
-        if (!insideSphere(p, sphereCenter, R)) {
-            allInside = false;
-            break;
-        }
-    }
-    if (allInside) {
-        return []; // 削除
-    }
-
-    // 完全外チェック
-    if (!intersectsSphereCube(sphereCenter, R, x, y, z, size)) {
-        return [id]; // そのまま残す
-    }
-
-    // 部分交差 → 細分化
-    if (id.length >= maxDepth) {
-        // これ以上細分化できない → 最小 cube
-        return []; // 削る
-    }
-
-    // 子 cube を生成
-    const children = generateChildren(id);
-
-    // 子 cube を再判定
-    let result = [];
-    for (const child of children) {
-        result.push(...carveSphere(child, L, sphereCenter, R, maxDepth));
-    }
-    return result;
-}
-
-function cut_sphere(ids_current, L, sphereCenter, R){
-    const maxDepth = 8;
-    let new_ids = [];
-
-    for (const id of ids_current) {
-        const result = carveSphere(id, L, sphereCenter, R, maxDepth);
-        new_ids.push(...result);
-    }
-
-    ids_current = new_ids;
-    return ids_current;
-}
 //-- カプセルヘラ実装 S
 function distanceSquared(a, b) {
     const dx = a.x - b.x;
