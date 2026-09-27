@@ -861,6 +861,39 @@ function octantCenter(id, L) {
   return { x, y, z, size };
 }
 
+function octantCenterWithMinMax(id, L) {
+  let x = 0, y = 0, z = 0;
+  let size = L;
+
+  for (const c of id) {
+    size /= 2;
+    const h = size / 2;
+
+    switch (c) {
+      case "A": x += h; y += h; z += h; break;
+      case "B": x -= h; y += h; z += h; break;
+      case "C": x -= h; y -= h; z += h; break;
+      case "D": x += h; y -= h; z += h; break;
+      case "E": x += h; y += h; z -= h; break;
+      case "F": x -= h; y += h; z -= h; break;
+      case "G": x -= h; y -= h; z -= h; break;
+      case "H": x += h; y -= h; z -= h; break;
+    }
+  }
+
+  const half = size / 2;
+
+  return {
+    x, y, z, size,
+    minX: x - half,
+    maxX: x + half,
+    minY: y - half,
+    maxY: y + half,
+    minZ: z - half,
+    maxZ: z + half
+  };
+}
+
 // cube の 8つの頂点を返す
 function cubeCorners(cx, cy, cz, size) {
     const h = size / 2;
@@ -894,33 +927,29 @@ function generateChildren(id) {
 //-- ソリッドの数算出 S
 const centerCache = new Map();
 
-function initCenterCache(){
+function initCenterCache(ids,L){
     centerCache.clear();
-}
+    const info = new Map();
+    for (const id of ids) {
+        centerCache.set(id, octantCenterWithMinMax(id, L));
+    }
 
-function getCenter(id, L) {
-  if (!centerCache.has(id)) {
-    centerCache.set(id, octantCenter(id, L));
-  }
-  return centerCache.get(id);
 }
 
 // morton符号による隣接判定
-function isAdjacent(id1, id2, L) {
-  const p1 = getCenter(id1, L);
-  const p2 = getCenter(id2, L);
+
+function isAdjacent(id1, id2) {
+  const p1 = centerCache.get(id1);
+  const p2 = centerCache.get(id2);
 
   const dx = Math.abs(p1.x - p2.x);
   const dy = Math.abs(p1.y - p2.y);
   const dz = Math.abs(p1.z - p2.z);
 
-  const s1 = p1.size;
-  const s2 = p2.size;
+  const threshold = (p1.size + p2.size) / 2;
 
-  const threshold = (s1 + s2) / 2;
-
-  // voxel サイズに比例した誤差許容（5〜10%）
-  const eps = Math.min(s1, s2) * 0.10;
+  // AABB フィルタ後なので eps は小さくてよい
+  const eps = Math.min(p1.size, p2.size) * 0.03;
 
   return dx <= threshold + eps &&
          dy <= threshold + eps &&
@@ -948,57 +977,27 @@ function dfsIterative(start, adj, visited) {
   return group;
 }
 
-function buildAdjacency(ids, L) {
+function buildAdjacency(ids) {
   const adj = new Map();
   for (const id of ids) adj.set(id, []);
 
   for (let i = 0; i < ids.length; i++) {
-    const p1 = getCenter(ids[i], L);
+    const p1 = centerCache.get(ids[i]);
     const s1 = p1.size;
-    const half1 = s1 / 2;
-
-    const min1 = {
-      x: p1.x - half1,
-      y: p1.y - half1,
-      z: p1.z - half1
-    };
-    const max1 = {
-      x: p1.x + half1,
-      y: p1.y + half1,
-      z: p1.z + half1
-    };
 
     for (let j = i + 1; j < ids.length; j++) {
-      const p2 = getCenter(ids[j], L);
+      const p2 = centerCache.get(ids[j]);
       const s2 = p2.size;
-      const half2 = s2 / 2;
 
-      const min2 = {
-        x: p2.x - half2,
-        y: p2.y - half2,
-        z: p2.z - half2
-      };
-      const max2 = {
-        x: p2.x + half2,
-        y: p2.y + half2,
-        z: p2.z + half2
-      };
+      const eps = Math.min(s1, s2) * 0.05;
 
       // AABB フィルタ（隣接し得るかどうか）
-      const eps = Math.min(s1, s2) * 0.2; // 20% の余裕
-
-      const possible =
-        max1.x + eps >= min2.x &&
-        max2.x + eps >= min1.x &&
-        max1.y + eps >= min2.y &&
-        max2.y + eps >= min1.y &&
-        max1.z + eps >= min2.z &&
-        max2.z + eps >= min1.z;
-
-      if (!possible) continue; // 絶対に隣接しないので除外
+      if (p1.maxX + eps < p2.minX || p2.maxX + eps < p1.minX) continue;
+      if (p1.maxY + eps < p2.minY || p2.maxY + eps < p1.minY) continue;
+      if (p1.maxZ + eps < p2.minZ || p2.maxZ + eps < p1.minZ) continue;
 
       // 本当の隣接判定
-      if (isAdjacent(ids[i], ids[j], L)) {
+      if (isAdjacent(ids[i], ids[j])) {
         adj.get(ids[i]).push(ids[j]);
         adj.get(ids[j]).push(ids[i]);
       }
@@ -1008,8 +1007,8 @@ function buildAdjacency(ids, L) {
   return adj;
 }
 
-function classifySolids(ids, L) {
-  const adj = buildAdjacency(ids, L);
+function classifySolids(ids) {
+  const adj = buildAdjacency(ids);
   const visited = new Set();
   const solids = [];
 
@@ -1022,7 +1021,6 @@ function classifySolids(ids, L) {
 
   return solids;
 }
-
 
 //-- ソリッドの数算出 E
 
@@ -1349,8 +1347,10 @@ function drawCanvasAll(){
 // テスト用
 const testBtn = document.getElementById("testBtn");
 testBtn.addEventListener("click", () => {
-  initCenterCache();
-  const solids = classifySolids(model.ids.sort(), model.L);
+  console.log("Start test...");
+  initCenterCache(model.ids, model.L);
+  console.log("init end.");
+  const solids = classifySolids(model.ids);
 
   console.log("ソリッド数:", solids.length);
   solids.forEach((group, i) => {
