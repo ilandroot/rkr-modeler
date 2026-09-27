@@ -169,6 +169,7 @@
     <input type="checkbox" id="showSection" checked>
     断面表示
     </label>
+    <button id="testBtn">テスト</button>
 
 
 </div>
@@ -890,6 +891,141 @@ function generateChildren(id) {
     ];
 }
 
+//-- ソリッドの数算出 S
+const centerCache = new Map();
+
+function initCenterCache(){
+    centerCache.clear();
+}
+
+function getCenter(id, L) {
+  if (!centerCache.has(id)) {
+    centerCache.set(id, octantCenter(id, L));
+  }
+  return centerCache.get(id);
+}
+
+// morton符号による隣接判定
+function isAdjacent(id1, id2, L) {
+  const p1 = getCenter(id1, L);
+  const p2 = getCenter(id2, L);
+
+  const dx = Math.abs(p1.x - p2.x);
+  const dy = Math.abs(p1.y - p2.y);
+  const dz = Math.abs(p1.z - p2.z);
+
+  const s1 = p1.size;
+  const s2 = p2.size;
+
+  const threshold = (s1 + s2) / 2;
+
+  // voxel サイズに比例した誤差許容（5〜10%）
+  const eps = Math.min(s1, s2) * 0.10;
+
+  return dx <= threshold + eps &&
+         dy <= threshold + eps &&
+         dz <= threshold + eps;
+}
+
+function dfsIterative(start, adj, visited) {
+  const stack = [start];
+  const group = [];
+
+  while (stack.length > 0) {
+    const id = stack.pop();
+    if (visited.has(id)) continue;
+
+    visited.add(id);
+    group.push(id);
+
+    for (const next of adj.get(id)) {
+      if (!visited.has(next)) {
+        stack.push(next);
+      }
+    }
+  }
+
+  return group;
+}
+
+function buildAdjacency(ids, L) {
+  const adj = new Map();
+  for (const id of ids) adj.set(id, []);
+
+  for (let i = 0; i < ids.length; i++) {
+    const p1 = getCenter(ids[i], L);
+    const s1 = p1.size;
+    const half1 = s1 / 2;
+
+    const min1 = {
+      x: p1.x - half1,
+      y: p1.y - half1,
+      z: p1.z - half1
+    };
+    const max1 = {
+      x: p1.x + half1,
+      y: p1.y + half1,
+      z: p1.z + half1
+    };
+
+    for (let j = i + 1; j < ids.length; j++) {
+      const p2 = getCenter(ids[j], L);
+      const s2 = p2.size;
+      const half2 = s2 / 2;
+
+      const min2 = {
+        x: p2.x - half2,
+        y: p2.y - half2,
+        z: p2.z - half2
+      };
+      const max2 = {
+        x: p2.x + half2,
+        y: p2.y + half2,
+        z: p2.z + half2
+      };
+
+      // AABB フィルタ（隣接し得るかどうか）
+      const eps = Math.min(s1, s2) * 0.2; // 20% の余裕
+
+      const possible =
+        max1.x + eps >= min2.x &&
+        max2.x + eps >= min1.x &&
+        max1.y + eps >= min2.y &&
+        max2.y + eps >= min1.y &&
+        max1.z + eps >= min2.z &&
+        max2.z + eps >= min1.z;
+
+      if (!possible) continue; // 絶対に隣接しないので除外
+
+      // 本当の隣接判定
+      if (isAdjacent(ids[i], ids[j], L)) {
+        adj.get(ids[i]).push(ids[j]);
+        adj.get(ids[j]).push(ids[i]);
+      }
+    }
+  }
+
+  return adj;
+}
+
+function classifySolids(ids, L) {
+  const adj = buildAdjacency(ids, L);
+  const visited = new Set();
+  const solids = [];
+
+  for (const id of ids) {
+    if (!visited.has(id)) {
+      const group = dfsIterative(id, adj, visited);
+      solids.push(group);
+    }
+  }
+
+  return solids;
+}
+
+
+//-- ソリッドの数算出 E
+
 //-- カプセルヘラ実装 S
 function distanceSquared(a, b) {
     const dx = a.x - b.x;
@@ -1209,6 +1345,19 @@ function drawCanvasAll(){
         draw();  // 断面なし
     }
 }
+
+// テスト用
+const testBtn = document.getElementById("testBtn");
+testBtn.addEventListener("click", () => {
+  initCenterCache();
+  const solids = classifySolids(model.ids.sort(), model.L);
+
+  console.log("ソリッド数:", solids.length);
+  solids.forEach((group, i) => {
+    console.log(`ソリッド${i+1}:`, group);
+  });
+});
+
 canvas.addEventListener("mousemove", (e) => {
     const p_canvas = getXZFromEvent(e);
     previewPos = canvasToClay(p_canvas.x, p_canvas.z);
