@@ -1069,8 +1069,7 @@ function buildAdjacencyGrid(ids, cellSize) {
   return adj;
 }
 
-function classifySolids(ids, cellSize) {
-  const adj = buildAdjacencyGrid(ids, cellSize);  // ← Grid版を使う
+function classifySolids(ids, adj) {
   const visited = new Set();
   const solids = [];
 
@@ -1084,7 +1083,118 @@ function classifySolids(ids, cellSize) {
   return solids;
 }
 
+
 //-- ソリッドの数算出 E
+
+//-- ソリッド境界面抽出 S
+function facePosX(p) {
+  return {
+    vertices: [
+      { x: p.maxX, y: p.minY, z: p.minZ },
+      { x: p.maxX, y: p.maxY, z: p.minZ },
+      { x: p.maxX, y: p.maxY, z: p.maxZ },
+      { x: p.maxX, y: p.minY, z: p.maxZ }
+    ]
+  };
+}
+
+function faceNegX(p) {
+  return {
+    vertices: [
+      { x: p.minX, y: p.minY, z: p.minZ },
+      { x: p.minX, y: p.maxY, z: p.minZ },
+      { x: p.minX, y: p.maxY, z: p.maxZ },
+      { x: p.minX, y: p.minY, z: p.maxZ }
+    ]
+  };
+}
+
+function facePosY(p) {
+  return {
+    vertices: [
+      { x: p.minX, y: p.maxY, z: p.minZ },
+      { x: p.maxX, y: p.maxY, z: p.minZ },
+      { x: p.maxX, y: p.maxY, z: p.maxZ },
+      { x: p.minX, y: p.maxY, z: p.maxZ }
+    ]
+  };
+}
+
+function faceNegY(p) {
+  return {
+    vertices: [
+      { x: p.minX, y: p.minY, z: p.minZ },
+      { x: p.maxX, y: p.minY, z: p.minZ },
+      { x: p.maxX, y: p.minY, z: p.maxZ },
+      { x: p.minX, y: p.minY, z: p.maxZ }
+    ]
+  };
+}
+
+function facePosZ(p) {
+  return {
+    vertices: [
+      { x: p.minX, y: p.minY, z: p.maxZ },
+      { x: p.maxX, y: p.minY, z: p.maxZ },
+      { x: p.maxX, y: p.maxY, z: p.maxZ },
+      { x: p.minX, y: p.maxY, z: p.maxZ }
+    ]
+  };
+}
+
+function faceNegZ(p) {
+  return {
+    vertices: [
+      { x: p.minX, y: p.minY, z: p.minZ },
+      { x: p.maxX, y: p.minY, z: p.minZ },
+      { x: p.maxX, y: p.maxY, z: p.minZ },
+      { x: p.minX, y: p.maxY, z: p.minZ }
+    ]
+  };
+}
+
+function extractSurfaceFaces(solids, adj) {
+  const faces = [];
+  const ids = solids[0]; // ソリッド数＝1
+
+  for (const id of ids) {
+    const p = centerCache.get(id);
+    const neighbors = adj.get(id);
+
+    let hasPosX = false;
+    let hasNegX = false;
+    let hasPosY = false;
+    let hasNegY = false;
+    let hasPosZ = false;
+    let hasNegZ = false;
+
+    for (const nid of neighbors) {
+      const np = centerCache.get(nid);
+
+      if (np.x > p.x) hasPosX = true;
+      if (np.x < p.x) hasNegX = true;
+
+      if (np.y > p.y) hasPosY = true;
+      if (np.y < p.y) hasNegY = true;
+
+      if (np.z > p.z) hasPosZ = true;
+      if (np.z < p.z) hasNegZ = true;
+    }
+
+    if (!hasPosX) faces.push(facePosX(p));
+    if (!hasNegX) faces.push(faceNegX(p));
+
+    if (!hasPosY) faces.push(facePosY(p));
+    if (!hasNegY) faces.push(faceNegY(p));
+
+    if (!hasPosZ) faces.push(facePosZ(p));
+    if (!hasNegZ) faces.push(faceNegZ(p));
+  }
+
+  return faces;
+}
+
+//-- ソリッド境界面抽出 E
 
 //-- カプセルヘラ実装 S
 function distanceSquared(a, b) {
@@ -1408,18 +1518,26 @@ function drawCanvasAll(){
 
 // テスト用
 const testBtn = document.getElementById("testBtn");
+// テスト用
 testBtn.addEventListener("click", () => {
-  console.log("Start test...");
 
+  console.log("Start test...");
   initCenterCache(model.ids, model.L);
   console.log("init end.");
 
   const cellSize = L / 16;
 
-  const solids = classifySolids(model.ids, cellSize);
-  const solidCount = solids.length;
+  // ① adjacency を作る（高速版）
+  const adj = buildAdjacencyGrid(model.ids, cellSize);
 
+  // ② ソリッド数を判定（adj を渡す）
+  const solids = classifySolids(model.ids, adj);
+  const solidCount = solids.length;
   console.log("ソリッド数:", solidCount);
+
+  // ③ 境界面抽出（adj を使う）
+  const faces = extractSurfaceFaces(solids, adj);
+  console.log(faces);
 });
 
 // 断面図上でのmousemoveイベント
