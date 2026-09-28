@@ -937,7 +937,6 @@ function initCenterCache(ids,L){
 }
 
 // morton符号による隣接判定
-
 function isAdjacent(id1, id2) {
   const p1 = centerCache.get(id1);
   const p2 = centerCache.get(id2);
@@ -977,29 +976,92 @@ function dfsIterative(start, adj, visited) {
   return group;
 }
 
-function buildAdjacency(ids) {
+
+function buildAdjacencyGrid(ids, cellSize) {
   const adj = new Map();
   for (const id of ids) adj.set(id, []);
 
-  for (let i = 0; i < ids.length; i++) {
-    const p1 = centerCache.get(ids[i]);
-    const s1 = p1.size;
+  // --- 1. 空間グリッドを構築 ---
+  const grid = new Map();
 
-    for (let j = i + 1; j < ids.length; j++) {
-      const p2 = centerCache.get(ids[j]);
-      const s2 = p2.size;
+  function cellKey(x, y, z) {
+    return `${x},${y},${z}`;
+  }
 
-      const eps = Math.min(s1, s2) * 0.05;
+  for (const id of ids) {
+    const p = centerCache.get(id);
 
-      // AABB フィルタ（隣接し得るかどうか）
-      if (p1.maxX + eps < p2.minX || p2.maxX + eps < p1.minX) continue;
-      if (p1.maxY + eps < p2.minY || p2.maxY + eps < p1.minY) continue;
-      if (p1.maxZ + eps < p2.minZ || p2.maxZ + eps < p1.minZ) continue;
+    // voxel の境界からセル範囲を計算
+    const minCX = Math.floor(p.minX / cellSize);
+    const maxCX = Math.floor(p.maxX / cellSize);
+    const minCY = Math.floor(p.minY / cellSize);
+    const maxCY = Math.floor(p.maxY / cellSize);
+    const minCZ = Math.floor(p.minZ / cellSize);
+    const maxCZ = Math.floor(p.maxZ / cellSize);
 
-      // 本当の隣接判定
-      if (isAdjacent(ids[i], ids[j])) {
-        adj.get(ids[i]).push(ids[j]);
-        adj.get(ids[j]).push(ids[i]);
+    // voxel がまたがるセルすべてに登録
+    for (let cx = minCX; cx <= maxCX; cx++) {
+      for (let cy = minCY; cy <= maxCY; cy++) {
+        for (let cz = minCZ; cz <= maxCZ; cz++) {
+          const key = cellKey(cx, cy, cz);
+          if (!grid.has(key)) grid.set(key, []);
+          grid.get(key).push(id);
+        }
+      }
+    }
+  }
+
+  // --- 2. 隣接セルの voxel だけ比較 ---
+  const neighborOffsets = [];
+  for (let dx = -1; dx <= 1; dx++) {
+    for (let dy = -1; dy <= 1; dy++) {
+      for (let dz = -1; dz <= 1; dz++) {
+        neighborOffsets.push([dx, dy, dz]);
+      }
+    }
+  }
+
+  for (const id of ids) {
+    const p1 = centerCache.get(id);
+
+    const minCX = Math.floor(p1.minX / cellSize);
+    const maxCX = Math.floor(p1.maxX / cellSize);
+    const minCY = Math.floor(p1.minY / cellSize);
+    const maxCY = Math.floor(p1.maxY / cellSize);
+    const minCZ = Math.floor(p1.minZ / cellSize);
+    const maxCZ = Math.floor(p1.maxZ / cellSize);
+
+    const checked = new Set();
+
+    for (let cx = minCX; cx <= maxCX; cx++) {
+      for (let cy = minCY; cy <= maxCY; cy++) {
+        for (let cz = minCZ; cz <= maxCZ; cz++) {
+
+          for (const [dx, dy, dz] of neighborOffsets) {
+            const key = cellKey(cx + dx, cy + dy, cz + dz);
+            if (!grid.has(key)) continue;
+
+            for (const id2 of grid.get(key)) {
+              if (id === id2) continue;
+              if (checked.has(id2)) continue;
+              checked.add(id2);
+
+              const p2 = centerCache.get(id2);
+
+              // AABB フィルタ
+              const eps = Math.min(p1.size, p2.size) * 0.05;
+              if (p1.maxX + eps < p2.minX || p2.maxX + eps < p1.minX) continue;
+              if (p1.maxY + eps < p2.minY || p2.maxY + eps < p1.minY) continue;
+              if (p1.maxZ + eps < p2.minZ || p2.maxZ + eps < p1.minZ) continue;
+
+              // 本当の隣接判定
+              if (isAdjacent(id, id2)) {
+                adj.get(id).push(id2);
+                adj.get(id2).push(id);
+              }
+            }
+          }
+        }
       }
     }
   }
@@ -1007,8 +1069,8 @@ function buildAdjacency(ids) {
   return adj;
 }
 
-function classifySolids(ids) {
-  const adj = buildAdjacency(ids);
+function classifySolids(ids, cellSize) {
+  const adj = buildAdjacencyGrid(ids, cellSize);  // ← Grid版を使う
   const visited = new Set();
   const solids = [];
 
@@ -1348,16 +1410,19 @@ function drawCanvasAll(){
 const testBtn = document.getElementById("testBtn");
 testBtn.addEventListener("click", () => {
   console.log("Start test...");
+
   initCenterCache(model.ids, model.L);
   console.log("init end.");
-  const solids = classifySolids(model.ids);
 
-  console.log("ソリッド数:", solids.length);
-  solids.forEach((group, i) => {
-    console.log(`ソリッド${i+1}:`, group);
-  });
+  const cellSize = L / 16;
+
+  const solids = classifySolids(model.ids, cellSize);
+  const solidCount = solids.length;
+
+  console.log("ソリッド数:", solidCount);
 });
 
+// 断面図上でのmousemoveイベント
 canvas.addEventListener("mousemove", (e) => {
     const p_canvas = getXZFromEvent(e);
     previewPos = canvasToClay(p_canvas.x, p_canvas.z);
