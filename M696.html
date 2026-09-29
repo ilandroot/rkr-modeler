@@ -1152,7 +1152,7 @@ function faceNegZ(p) {
     ]
   };
 }
-
+/*
 function extractSurfaceFaces(solids, adj) {
   const faces = [];
   const ids = solids[0]; // ソリッド数＝1
@@ -1193,6 +1193,93 @@ function extractSurfaceFaces(solids, adj) {
 
   return faces;
 }
+*/
+function isTouchingPosX(p, np) {
+  return np.minX === p.maxX &&
+         np.maxY > p.minY &&
+         np.minY < p.maxY &&
+         np.maxZ > p.minZ &&
+         np.minZ < p.maxZ;
+}
+
+function isTouchingNegX(p, np) {
+  return np.maxX === p.minX &&
+         np.maxY > p.minY &&
+         np.minY < p.maxY &&
+         np.maxZ > p.minZ &&
+         np.minZ < p.maxZ;
+}
+function isTouchingPosY(p, np) {
+  return np.minY === p.maxY &&
+         np.maxX > p.minX &&
+         np.minX < p.maxX &&
+         np.maxZ > p.minZ &&
+         np.minZ < p.maxZ;
+}
+
+function isTouchingNegY(p, np) {
+  return np.maxY === p.minY &&
+         np.maxX > p.minX &&
+         np.minX < p.maxX &&
+         np.maxZ > p.minZ &&
+         np.minZ < p.maxZ;
+}
+function isTouchingPosZ(p, np) {
+  return np.minZ === p.maxZ &&
+         np.maxX > p.minX &&
+         np.minX < p.maxX &&
+         np.maxY > p.minY &&
+         np.minY < p.maxY;
+}
+
+function isTouchingNegZ(p, np) {
+  return np.maxZ === p.minZ &&
+         np.maxX > p.minX &&
+         np.minX < p.maxX &&
+         np.maxY > p.minY &&
+         np.minY < p.maxY;
+}
+
+function extractSurfaceFaces(solids, adj) {
+  const faces = [];
+  const ids = solids[0];
+
+  for (const id of ids) {
+    const p = centerCache.get(id);
+    const neighbors = adj.get(id);
+
+    let hasPosX = false;
+    let hasNegX = false;
+    let hasPosY = false;
+    let hasNegY = false;
+    let hasPosZ = false;
+    let hasNegZ = false;
+
+    for (const nid of neighbors) {
+      const np = centerCache.get(nid);
+
+      if (isTouchingPosX(p, np)) hasPosX = true;
+      if (isTouchingNegX(p, np)) hasNegX = true;
+
+      if (isTouchingPosY(p, np)) hasPosY = true;
+      if (isTouchingNegY(p, np)) hasNegY = true;
+
+      if (isTouchingPosZ(p, np)) hasPosZ = true;
+      if (isTouchingNegZ(p, np)) hasNegZ = true;
+    }
+
+    if (!hasPosX) faces.push(facePosX(p));
+    if (!hasNegX) faces.push(faceNegX(p));
+    if (!hasPosY) faces.push(facePosY(p));
+    if (!hasNegY) faces.push(faceNegY(p));
+    if (!hasPosZ) faces.push(facePosZ(p));
+    if (!hasNegZ) faces.push(faceNegZ(p));
+  }
+
+  return faces;
+}
+
+
 
 //-- ソリッド境界面抽出 E
 
@@ -1345,6 +1432,70 @@ function renderOctree(cell) {
         }
     }
 }
+
+//--- STL出力関係 S
+function facesToTriangles(faces) {
+  const triangles = [];
+
+  for (const f of faces) {
+    const v = f.vertices;
+
+    // 三角形1
+    triangles.push([v[0], v[1], v[2]]);
+    // 三角形2
+    triangles.push([v[0], v[2], v[3]]);
+  }
+
+  return triangles;
+}
+function computeNormal(v1, v2, v3) {
+  const ux = v2.x - v1.x;
+  const uy = v2.y - v1.y;
+  const uz = v2.z - v1.z;
+
+  const vx = v3.x - v1.x;
+  const vy = v3.y - v1.y;
+  const vz = v3.z - v1.z;
+
+  const nx = uy * vz - uz * vy;
+  const ny = uz * vx - ux * vz;
+  const nz = ux * vy - uy * vx;
+
+  const len = Math.sqrt(nx*nx + ny*ny + nz*nz);
+  return { x: nx/len, y: ny/len, z: nz/len };
+}
+function trianglesToSTL(triangles) {
+  let stl = "solid model\n";
+
+  for (const tri of triangles) {
+    const [v1, v2, v3] = tri;
+    const n = computeNormal(v1, v2, v3);
+
+    stl += `facet normal ${n.x} ${n.y} ${n.z}\n`;
+    stl += `  outer loop\n`;
+    stl += `    vertex ${v1.x} ${v1.y} ${v1.z}\n`;
+    stl += `    vertex ${v2.x} ${v2.y} ${v2.z}\n`;
+    stl += `    vertex ${v3.x} ${v3.y} ${v3.z}\n`;
+    stl += `  endloop\n`;
+    stl += `endfacet\n`;
+  }
+
+  stl += "endsolid model\n";
+  return stl;
+}
+function downloadSTL(stlString) {
+  const blob = new Blob([stlString], { type: "text/plain" });
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "model.stl";
+  a.click();
+
+  URL.revokeObjectURL(url);
+}
+
+//--- STL出力関係 E
 
 //---
 let clayGroup = null;
@@ -1518,26 +1669,36 @@ function drawCanvasAll(){
 
 // テスト用
 const testBtn = document.getElementById("testBtn");
-// テスト用
 testBtn.addEventListener("click", () => {
 
-  console.log("Start test...");
-  initCenterCache(model.ids, model.L);
-  console.log("init end.");
+    console.log("Start test...");
+    initCenterCache(model.ids, model.L);
+    console.log("init end.");
 
-  const cellSize = L / 16;
+    const cellSize = L / 16;
 
-  // ① adjacency を作る（高速版）
-  const adj = buildAdjacencyGrid(model.ids, cellSize);
+    // ① adjacency を作る（高速版）
+    const adj = buildAdjacencyGrid(model.ids, cellSize);
 
-  // ② ソリッド数を判定（adj を渡す）
-  const solids = classifySolids(model.ids, adj);
-  const solidCount = solids.length;
-  console.log("ソリッド数:", solidCount);
+    // ② ソリッド数を判定（adj を渡す）
+    const solids = classifySolids(model.ids, adj);
+    const solidCount = solids.length;
+    console.log("ソリッド数:", solidCount);
 
-  // ③ 境界面抽出（adj を使う）
-  const faces = extractSurfaceFaces(solids, adj);
-  console.log(faces);
+    // ③ 境界面抽出（adj を使う）
+    const faces = extractSurfaceFaces(solids, adj);
+    /* console.log(faces); */
+
+    // ① quad → triangles
+    const triangles = facesToTriangles(faces);
+
+    // ② triangles → STL文字列
+    const stlString = trianglesToSTL(triangles);
+
+    // ③ ダウンロード
+    downloadSTL(stlString);
+
+    console.log("STL 出力完了");
 });
 
 // 断面図上でのmousemoveイベント
