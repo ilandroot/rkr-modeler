@@ -1153,47 +1153,6 @@ function faceNegZ(p) {
   };
 }
 /*
-function extractSurfaceFaces(solids, adj) {
-  const faces = [];
-  const ids = solids[0]; // ソリッド数＝1
-
-  for (const id of ids) {
-    const p = centerCache.get(id);
-    const neighbors = adj.get(id);
-
-    let hasPosX = false;
-    let hasNegX = false;
-    let hasPosY = false;
-    let hasNegY = false;
-    let hasPosZ = false;
-    let hasNegZ = false;
-
-    for (const nid of neighbors) {
-      const np = centerCache.get(nid);
-
-      if (np.x > p.x) hasPosX = true;
-      if (np.x < p.x) hasNegX = true;
-
-      if (np.y > p.y) hasPosY = true;
-      if (np.y < p.y) hasNegY = true;
-
-      if (np.z > p.z) hasPosZ = true;
-      if (np.z < p.z) hasNegZ = true;
-    }
-
-    if (!hasPosX) faces.push(facePosX(p));
-    if (!hasNegX) faces.push(faceNegX(p));
-
-    if (!hasPosY) faces.push(facePosY(p));
-    if (!hasNegY) faces.push(faceNegY(p));
-
-    if (!hasPosZ) faces.push(facePosZ(p));
-    if (!hasNegZ) faces.push(faceNegZ(p));
-  }
-
-  return faces;
-}
-*/
 function isTouchingPosX(p, np) {
   return np.minX === p.maxX &&
          np.maxY > p.minY &&
@@ -1238,6 +1197,56 @@ function isTouchingNegZ(p, np) {
          np.minX < p.maxX &&
          np.maxY > p.minY &&
          np.minY < p.maxY;
+}
+*/
+const EPS = 1e-6;
+
+function isTouchingPosX(p, np) {
+  return Math.abs(np.minX - p.maxX) < EPS &&
+         np.maxY > p.minY + EPS &&
+         np.minY < p.maxY - EPS &&
+         np.maxZ > p.minZ + EPS &&
+         np.minZ < p.maxZ - EPS;
+}
+
+function isTouchingNegX(p, np) {
+  return Math.abs(np.maxX - p.minX) < EPS &&
+         np.maxY > p.minY + EPS &&
+         np.minY < p.maxY - EPS &&
+         np.maxZ > p.minZ + EPS &&
+         np.minZ < p.maxZ - EPS;
+}
+
+function isTouchingPosY(p, np) {
+  return Math.abs(np.minY - p.maxY) < EPS &&
+         np.maxX > p.minX + EPS &&
+         np.minX < p.maxX - EPS &&
+         np.maxZ > p.minZ + EPS &&
+         np.minZ < p.maxZ - EPS;
+}
+
+function isTouchingNegY(p, np) {
+  return Math.abs(np.maxY - p.minY) < EPS &&
+         np.maxX > p.minX + EPS &&
+         np.minX < p.maxX - EPS &&
+         np.maxZ > p.minZ + EPS &&
+         np.minZ < p.maxZ - EPS;
+}
+
+function isTouchingPosZ(p, np) {
+  return Math.abs(np.minZ - p.maxZ) < EPS &&
+         np.maxX > p.minX + EPS &&
+         np.minX < p.maxX - EPS &&
+         np.maxY > p.minY + EPS &&
+         np.minY < p.maxY - EPS;
+}
+
+function isTouchingNegZ(p, np) {
+  return Math.abs(np.maxZ - p.minZ) < EPS &&
+         np.maxX > p.minX + EPS &&
+         np.minX < p.maxX - EPS &&
+         np.maxY > p.minY + EPS &&
+         np.minY < p.maxY - EPS;
 }
 
 function extractSurfaceFaces(solids, adj) {
@@ -1483,17 +1492,42 @@ function trianglesToSTL(triangles) {
   stl += "endsolid model\n";
   return stl;
 }
+function getTimestampSTLFilename(model_name="myclay") {
+    const d = new Date();
+
+    const yyyy = d.getFullYear();
+    const mm   = String(d.getMonth() + 1).padStart(2, '0');
+    const dd   = String(d.getDate()).padStart(2, '0');
+
+    const hh   = String(d.getHours()).padStart(2, '0');
+    const mi   = String(d.getMinutes()).padStart(2, '0');
+    const ss   = String(d.getSeconds()).padStart(2, '0');
+
+    return `${model_name}-${yyyy}${mm}${dd}-${hh}${mi}${ss}.stl`;
+}
+
 function downloadSTL(stlString) {
+  let model_name = document.getElementById("modelNameInput").value.trim();
+
+  // 空欄ならデフォルト名
+  if (model_name === "") model_name = "myclay";
+
+  // 拡張子が付いていたら除去
+  model_name = model_name.replace(/\.stl$/i, "");
+
+  const dl_file_name = getTimestampSTLFilename(model_name);
+
   const blob = new Blob([stlString], { type: "text/plain" });
   const url = URL.createObjectURL(blob);
 
   const a = document.createElement("a");
   a.href = url;
-  a.download = "model.stl";
+  a.download = dl_file_name;
   a.click();
 
   URL.revokeObjectURL(url);
 }
+
 
 //--- STL出力関係 E
 
