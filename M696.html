@@ -976,6 +976,28 @@ function dfsIterative(start, adj, visited) {
   return group;
 }
 
+function buildAdjacency(ids) {
+  const adj = new Map();
+  for (const id of ids) adj.set(id, []);
+
+  for (let i = 0; i < ids.length; i++) {
+    const p = centerCache.get(ids[i]);
+
+    for (let j = i + 1; j < ids.length; j++) {
+      const np = centerCache.get(ids[j]);
+
+      if (isTouchingPosX(p, np) || isTouchingNegX(p, np) ||
+          isTouchingPosY(p, np) || isTouchingNegY(p, np) ||
+          isTouchingPosZ(p, np) || isTouchingNegZ(p, np)) {
+
+        adj.get(ids[i]).push(ids[j]);
+        adj.get(ids[j]).push(ids[i]);
+      }
+    }
+  }
+
+  return adj;
+}
 
 function buildAdjacencyGrid(ids, cellSize) {
   const adj = new Map();
@@ -1152,54 +1174,9 @@ function faceNegZ(p) {
     ]
   };
 }
-/*
-function isTouchingPosX(p, np) {
-  return np.minX === p.maxX &&
-         np.maxY > p.minY &&
-         np.minY < p.maxY &&
-         np.maxZ > p.minZ &&
-         np.minZ < p.maxZ;
-}
 
-function isTouchingNegX(p, np) {
-  return np.maxX === p.minX &&
-         np.maxY > p.minY &&
-         np.minY < p.maxY &&
-         np.maxZ > p.minZ &&
-         np.minZ < p.maxZ;
-}
-function isTouchingPosY(p, np) {
-  return np.minY === p.maxY &&
-         np.maxX > p.minX &&
-         np.minX < p.maxX &&
-         np.maxZ > p.minZ &&
-         np.minZ < p.maxZ;
-}
 
-function isTouchingNegY(p, np) {
-  return np.maxY === p.minY &&
-         np.maxX > p.minX &&
-         np.minX < p.maxX &&
-         np.maxZ > p.minZ &&
-         np.minZ < p.maxZ;
-}
-function isTouchingPosZ(p, np) {
-  return np.minZ === p.maxZ &&
-         np.maxX > p.minX &&
-         np.minX < p.maxX &&
-         np.maxY > p.minY &&
-         np.minY < p.maxY;
-}
-
-function isTouchingNegZ(p, np) {
-  return np.maxZ === p.minZ &&
-         np.maxX > p.minX &&
-         np.minX < p.maxX &&
-         np.maxY > p.minY &&
-         np.minY < p.maxY;
-}
-*/
-const EPS = 1e-6;
+const EPS = 1e-12;
 
 function isTouchingPosX(p, np) {
   return Math.abs(np.minX - p.maxX) < EPS &&
@@ -1712,7 +1689,8 @@ testBtn.addEventListener("click", () => {
     const cellSize = L / 16;
 
     // ① adjacency を作る（高速版）
-    const adj = buildAdjacencyGrid(model.ids, cellSize);
+    // const adj = buildAdjacencyGrid(model.ids, cellSize);
+    const adj = buildAdjacency(model.ids);
 
     // ② ソリッド数を判定（adj を渡す）
     const solids = classifySolids(model.ids, adj);
