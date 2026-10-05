@@ -976,114 +976,62 @@ function dfsIterative(start, adj, visited) {
   return group;
 }
 
-function buildAdjacency(ids) {
-  const adj = new Map();
-  for (const id of ids) adj.set(id, []);
-
-  for (let i = 0; i < ids.length; i++) {
-    const p = centerCache.get(ids[i]);
-
-    for (let j = i + 1; j < ids.length; j++) {
-      const np = centerCache.get(ids[j]);
-
-      if (isTouchingPosX(p, np) || isTouchingNegX(p, np) ||
-          isTouchingPosY(p, np) || isTouchingNegY(p, np) ||
-          isTouchingPosZ(p, np) || isTouchingNegZ(p, np)) {
-
-        adj.get(ids[i]).push(ids[j]);
-        adj.get(ids[j]).push(ids[i]);
-      }
-    }
-  }
-
-  return adj;
+function expandedBBox(p, EPS) {
+  return {
+    minX: p.minX - EPS,
+    maxX: p.maxX + EPS,
+    minY: p.minY - EPS,
+    maxY: p.maxY + EPS,
+    minZ: p.minZ - EPS,
+    maxZ: p.maxZ + EPS,
+  };
 }
 
-function buildAdjacencyGrid(ids, cellSize) {
+function bboxOverlap(a, b) {
+  return !(
+    a.maxX < b.minX ||
+    a.minX > b.maxX ||
+    a.maxY < b.minY ||
+    a.minY > b.maxY ||
+    a.maxZ < b.minZ ||
+    a.minZ > b.maxZ
+  );
+}
+
+function buildAdjacency(ids) {
   const adj = new Map();
-  for (const id of ids) adj.set(id, []);
+  /* const EPS = 1e-12; */
 
-  // --- 1. 空間グリッドを構築 ---
-  const grid = new Map();
-
-  function cellKey(x, y, z) {
-    return `${x},${y},${z}`;
-  }
-
+  // 事前に bbox をキャッシュ
+  const boxes = new Map();
   for (const id of ids) {
     const p = centerCache.get(id);
-
-    // voxel の境界からセル範囲を計算
-    const minCX = Math.floor(p.minX / cellSize);
-    const maxCX = Math.floor(p.maxX / cellSize);
-    const minCY = Math.floor(p.minY / cellSize);
-    const maxCY = Math.floor(p.maxY / cellSize);
-    const minCZ = Math.floor(p.minZ / cellSize);
-    const maxCZ = Math.floor(p.maxZ / cellSize);
-
-    // voxel がまたがるセルすべてに登録
-    for (let cx = minCX; cx <= maxCX; cx++) {
-      for (let cy = minCY; cy <= maxCY; cy++) {
-        for (let cz = minCZ; cz <= maxCZ; cz++) {
-          const key = cellKey(cx, cy, cz);
-          if (!grid.has(key)) grid.set(key, []);
-          grid.get(key).push(id);
-        }
-      }
-    }
+    boxes.set(id, expandedBBox(p, EPS));
+    adj.set(id, []);
   }
 
-  // --- 2. 隣接セルの voxel だけ比較 ---
-  const neighborOffsets = [];
-  for (let dx = -1; dx <= 1; dx++) {
-    for (let dy = -1; dy <= 1; dy++) {
-      for (let dz = -1; dz <= 1; dz++) {
-        neighborOffsets.push([dx, dy, dz]);
-      }
-    }
-  }
+  // 比較
+  for (let i = 0; i < ids.length; i++) {
+    const id1 = ids[i];
+    const p1 = centerCache.get(id1);
+    const box1 = boxes.get(id1);
 
-  for (const id of ids) {
-    const p1 = centerCache.get(id);
+    for (let j = i + 1; j < ids.length; j++) {
+      const id2 = ids[j];
+      const p2 = centerCache.get(id2);
+      const box2 = boxes.get(id2);
 
-    const minCX = Math.floor(p1.minX / cellSize);
-    const maxCX = Math.floor(p1.maxX / cellSize);
-    const minCY = Math.floor(p1.minY / cellSize);
-    const maxCY = Math.floor(p1.maxY / cellSize);
-    const minCZ = Math.floor(p1.minZ / cellSize);
-    const maxCZ = Math.floor(p1.maxZ / cellSize);
+      // バウンディングボックスが重ならないなら隣接候補ではない
+      if (!bboxOverlap(box1, box2)) continue;
 
-    const checked = new Set();
-
-    for (let cx = minCX; cx <= maxCX; cx++) {
-      for (let cy = minCY; cy <= maxCY; cy++) {
-        for (let cz = minCZ; cz <= maxCZ; cz++) {
-
-          for (const [dx, dy, dz] of neighborOffsets) {
-            const key = cellKey(cx + dx, cy + dy, cz + dz);
-            if (!grid.has(key)) continue;
-
-            for (const id2 of grid.get(key)) {
-              if (id === id2) continue;
-              if (checked.has(id2)) continue;
-              checked.add(id2);
-
-              const p2 = centerCache.get(id2);
-
-              // AABB フィルタ
-              const eps = Math.min(p1.size, p2.size) * 0.05;
-              if (p1.maxX + eps < p2.minX || p2.maxX + eps < p1.minX) continue;
-              if (p1.maxY + eps < p2.minY || p2.maxY + eps < p1.minY) continue;
-              if (p1.maxZ + eps < p2.minZ || p2.maxZ + eps < p1.minZ) continue;
-
-              // 本当の隣接判定
-              if (isAdjacent(id, id2)) {
-                adj.get(id).push(id2);
-                adj.get(id2).push(id);
-              }
-            }
-          }
-        }
+      // 重なっている場合だけ isTouching を呼ぶ
+      if (
+        isTouchingPosX(p1, p2) || isTouchingNegX(p1, p2) ||
+        isTouchingPosY(p1, p2) || isTouchingNegY(p1, p2) ||
+        isTouchingPosZ(p1, p2) || isTouchingNegZ(p1, p2)
+      ) {
+        adj.get(id1).push(id2);
+        adj.get(id2).push(id1);
       }
     }
   }
@@ -1326,46 +1274,6 @@ function extractSurfaceFaces(solids, adj) {
 }
 
 //-- 面積判定 E
-/* 
-function extractSurfaceFaces(solids, adj) {
-  const faces = [];
-  const ids = solids[0];
-
-  for (const id of ids) {
-    const p = centerCache.get(id);
-    const neighbors = adj.get(id);
-
-    let hasPosX = false;
-    let hasNegX = false;
-    let hasPosY = false;
-    let hasNegY = false;
-    let hasPosZ = false;
-    let hasNegZ = false;
-
-    for (const nid of neighbors) {
-      const np = centerCache.get(nid);
-
-      if (isTouchingPosX(p, np)) hasPosX = true;
-      if (isTouchingNegX(p, np)) hasNegX = true;
-
-      if (isTouchingPosY(p, np)) hasPosY = true;
-      if (isTouchingNegY(p, np)) hasNegY = true;
-
-      if (isTouchingPosZ(p, np)) hasPosZ = true;
-      if (isTouchingNegZ(p, np)) hasNegZ = true;
-    }
-
-    if (!hasPosX) faces.push(facePosX(p));
-    if (!hasNegX) faces.push(faceNegX(p));
-    if (!hasPosY) faces.push(facePosY(p));
-    if (!hasNegY) faces.push(faceNegY(p));
-    if (!hasPosZ) faces.push(facePosZ(p));
-    if (!hasNegZ) faces.push(faceNegZ(p));
-  }
-
-  return faces;
-} */
-
 
 
 //-- ソリッド境界面抽出 E
@@ -1790,8 +1698,8 @@ testBtn.addEventListener("click", () => {
     const cellSize = L / 16;
 
     // ① adjacency を作る（高速版）
-    // const adj = buildAdjacencyGrid(model.ids, cellSize);
     const adj = buildAdjacency(model.ids);
+    console.log("adj end.");
 
     // ② ソリッド数を判定（adj を渡す）
     const solids = classifySolids(model.ids, adj);
