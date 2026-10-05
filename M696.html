@@ -1226,6 +1226,107 @@ function isTouchingNegZ(p, np) {
          np.minY < p.maxY - EPS;
 }
 
+//-- 面積判定 S
+// +X 方向
+function shouldHidePosX(p, neighbors) {
+  const myArea = (p.maxY - p.minY) * (p.maxZ - p.minZ);
+
+  for (const np of neighbors) {
+    if (isTouchingPosX(p, np)) {
+      const nArea = (np.maxY - np.minY) * (np.maxZ - np.minZ);
+      if (nArea >= myArea - EPS) return true;
+    }
+  }
+  return false;
+}
+
+// -X 方向
+function shouldHideNegX(p, neighbors) {
+  const myArea = (p.maxY - p.minY) * (p.maxZ - p.minZ);
+
+  for (const np of neighbors) {
+    if (isTouchingNegX(p, np)) {
+      const nArea = (np.maxY - np.minY) * (np.maxZ - np.minZ);
+      if (nArea >= myArea - EPS) return true;
+    }
+  }
+  return false;
+}
+
+// +Y 方向
+function shouldHidePosY(p, neighbors) {
+  const myArea = (p.maxX - p.minX) * (p.maxZ - p.minZ);
+
+  for (const np of neighbors) {
+    if (isTouchingPosY(p, np)) {
+      const nArea = (np.maxX - np.minX) * (np.maxZ - np.minZ);
+      if (nArea >= myArea - EPS) return true;
+    }
+  }
+  return false;
+}
+
+// -Y 方向
+function shouldHideNegY(p, neighbors) {
+  const myArea = (p.maxX - p.minX) * (p.maxZ - p.minZ);
+
+  for (const np of neighbors) {
+    if (isTouchingNegY(p, np)) {
+      const nArea = (np.maxX - np.minX) * (np.maxZ - np.minZ);
+      if (nArea >= myArea - EPS) return true;
+    }
+  }
+  return false;
+}
+
+// +Z 方向
+function shouldHidePosZ(p, neighbors) {
+  const myArea = (p.maxX - p.minX) * (p.maxY - p.minY);
+
+  for (const np of neighbors) {
+    if (isTouchingPosZ(p, np)) {
+      const nArea = (np.maxX - np.minX) * (np.maxY - np.minY);
+      if (nArea >= myArea - EPS) return true;
+    }
+  }
+  return false;
+}
+
+// -Z 方向
+function shouldHideNegZ(p, neighbors) {
+  const myArea = (p.maxX - p.minX) * (p.maxY - p.minY);
+
+  for (const np of neighbors) {
+    if (isTouchingNegZ(p, np)) {
+      const nArea = (np.maxX - np.minX) * (np.maxY - np.minY);
+      if (nArea >= myArea - EPS) return true;
+    }
+  }
+  return false;
+}
+function extractSurfaceFaces(solids, adj) {
+  const faces = [];
+  const ids = solids[0];
+
+  for (const id of ids) {
+    const p = centerCache.get(id);
+    const neighbors = adj.get(id);
+
+    if (!shouldHidePosX(p, neighbors)) faces.push(facePosX(p));
+    if (!shouldHideNegX(p, neighbors)) faces.push(faceNegX(p));
+
+    if (!shouldHidePosY(p, neighbors)) faces.push(facePosY(p));
+    if (!shouldHideNegY(p, neighbors)) faces.push(faceNegY(p));
+
+    if (!shouldHidePosZ(p, neighbors)) faces.push(facePosZ(p));
+    if (!shouldHideNegZ(p, neighbors)) faces.push(faceNegZ(p));
+  }
+
+  return faces;
+}
+
+//-- 面積判定 E
+/* 
 function extractSurfaceFaces(solids, adj) {
   const faces = [];
   const ids = solids[0];
@@ -1263,7 +1364,7 @@ function extractSurfaceFaces(solids, adj) {
   }
 
   return faces;
-}
+} */
 
 
 
