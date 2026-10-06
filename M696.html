@@ -582,7 +582,6 @@ function updateSectionView() {
     console.log("断面＋グリッド＋軸 表示完了");
 }
 
-
 //-------------------------E
 
 document.getElementById("radiusSlider").addEventListener("input", () => {
@@ -798,7 +797,6 @@ function canvasToClay(x_canvas, z_canvas) {
 
     return { x: x_clay, z: z_clay };
 }
-
 
 function generateRotationalPoints(p, steps) {
     const pts = [];
@@ -1087,7 +1085,6 @@ function classifySolids(ids, adj) {
   return solids;
 }
 
-
 //-- ソリッドの数算出 E
 
 //-- ソリッド境界面抽出 S
@@ -1156,7 +1153,6 @@ function faceNegZ(p) {
     ]
   };
 }
-
 
 const EPS = 1e-12;
 
@@ -1308,7 +1304,6 @@ function extractSurfaceFaces(solids, adj) {
 }
 
 //-- 面積判定 E
-
 
 //-- ソリッド境界面抽出 E
 
@@ -1764,7 +1759,6 @@ canvas.addEventListener("mousemove", (e) => {
     drawCanvasAll();
 });
 
-
 function redrawClayFromIDs(ids) {
 
     if (clayGroup) scene.remove(clayGroup);
@@ -1868,7 +1862,6 @@ function resetModel() {
 
     document.getElementById("modelNameInput").value = "";
 }
-
 
 document.getElementById("resetBtn").addEventListener("click", () => {
     resetModel();
