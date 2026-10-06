@@ -231,8 +231,9 @@ canvas.addEventListener("wheel", (e) => {
             A -= 2;   // 下回転 → 角度を減らす
         }
 
-        // 角度の範囲（必要なら調整）
-        A = Math.max(0, Math.min(A, 180));
+        // ★ 角度を循環させる（ラップ処理）
+        if (A < 0) A += 180;
+        if (A > 180) A -= 180;
 
         angle = A;
 
