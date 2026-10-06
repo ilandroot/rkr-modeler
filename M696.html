@@ -997,44 +997,77 @@ function bboxOverlap(a, b) {
     a.minZ > b.maxZ
   );
 }
+//-- 境界値indexのキーコード化 S
+const range_scale = 1000; // 必要なら調整
+
+function keyCode(value) {
+  return Math.round((value + EPS) * range_scale);
+}
+//-- 境界値indexのキーコード化 E
 
 function buildAdjacency(ids) {
   const adj = new Map();
-  /* const EPS = 1e-12; */
+  for (const id of ids) adj.set(id, []);
 
-  // 事前に bbox をキャッシュ
-  const boxes = new Map();
-  for (const id of ids) {
-    const p = centerCache.get(id);
-    boxes.set(id, expandedBBox(p, EPS));
-    adj.set(id, []);
+  // --- 境界キー用の Map(Set) を6方向分作成 ---
+  const mapMinX = new Map();
+  const mapMaxX = new Map();
+  const mapMinY = new Map();
+  const mapMaxY = new Map();
+  const mapMinZ = new Map();
+  const mapMaxZ = new Map();
+
+  function addToMap(map, key, id) {
+    if (!map.has(key)) map.set(key, new Set());
+    map.get(key).add(id);
   }
 
-  // 比較
-  for (let i = 0; i < ids.length; i++) {
-    const id1 = ids[i];
-    const p1 = centerCache.get(id1);
-    const box1 = boxes.get(id1);
+  // --- cube を境界キーで分類 ---
+  for (const id of ids) {
+    const p = centerCache.get(id);
 
-    for (let j = i + 1; j < ids.length; j++) {
-      const id2 = ids[j];
-      const p2 = centerCache.get(id2);
-      const box2 = boxes.get(id2);
+    addToMap(mapMinX, keyCode(p.minX), id);
+    addToMap(mapMaxX, keyCode(p.maxX), id);
+    addToMap(mapMinY, keyCode(p.minY), id);
+    addToMap(mapMaxY, keyCode(p.maxY), id);
+    addToMap(mapMinZ, keyCode(p.minZ), id);
+    addToMap(mapMaxZ, keyCode(p.maxZ), id);
+  }
 
-      // バウンディングボックスが重ならないなら隣接候補ではない
-      if (!bboxOverlap(box1, box2)) continue;
+  // --- 6方向のバケットだけ比較する関数 ---
+  function processBucket(map) {
+    for (const [key, set] of map) {
+      const list = [...set];
 
-      // 重なっている場合だけ isTouching を呼ぶ
-      if (
-        isTouchingPosX(p1, p2) || isTouchingNegX(p1, p2) ||
-        isTouchingPosY(p1, p2) || isTouchingNegY(p1, p2) ||
-        isTouchingPosZ(p1, p2) || isTouchingNegZ(p1, p2)
-      ) {
-        adj.get(id1).push(id2);
-        adj.get(id2).push(id1);
+      for (let i = 0; i < list.length; i++) {
+        const id1 = list[i];
+        const p1 = centerCache.get(id1);
+
+        for (let j = i + 1; j < list.length; j++) {
+          const id2 = list[j];
+          const p2 = centerCache.get(id2);
+
+          // 隣接判定（あなたの isTouching 系）
+          if (
+            isTouchingPosX(p1, p2) || isTouchingNegX(p1, p2) ||
+            isTouchingPosY(p1, p2) || isTouchingNegY(p1, p2) ||
+            isTouchingPosZ(p1, p2) || isTouchingNegZ(p1, p2)
+          ) {
+            adj.get(id1).push(id2);
+            adj.get(id2).push(id1);
+          }
+        }
       }
     }
   }
+
+  // --- 6方向のバケットを処理 ---
+  processBucket(mapMinX);
+  processBucket(mapMaxX);
+  processBucket(mapMinY);
+  processBucket(mapMaxY);
+  processBucket(mapMinZ);
+  processBucket(mapMaxZ);
 
   return adj;
 }
