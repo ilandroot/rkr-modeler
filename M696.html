@@ -169,7 +169,7 @@
     <input type="checkbox" id="showSection" checked>
     断面表示
     </label>
-    <button id="testBtn">テスト</button>
+    <button id="stlBtn">STL出力</button>
 
 
 </div>
@@ -1716,9 +1716,9 @@ function drawCanvasAll(){
     }
 }
 
-// テスト用
-const testBtn = document.getElementById("testBtn");
-testBtn.addEventListener("click", () => {
+// STLファイル出力
+const stlBtn = document.getElementById("stlBtn");
+stlBtn.addEventListener("click", () => {
 
     console.log("Start test...");
     initCenterCache(model.ids, model.L);
@@ -1734,6 +1734,12 @@ testBtn.addEventListener("click", () => {
     const solids = classifySolids(model.ids, adj);
     const solidCount = solids.length;
     console.log("ソリッド数:", solidCount);
+
+    // ★ ソリッド数チェック（ここが今回の追加ポイント）
+    if (solidCount !== 1) {
+        alert(`ソリッドは、1つのみSTL出力可能です。現状のソリッド数は、${solidCount}です。`);
+        return;   // 処理中断
+    }
 
     // ③ 境界面抽出（adj を使う）
     const faces = extractSurfaceFaces(solids, adj);
