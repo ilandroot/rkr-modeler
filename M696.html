@@ -120,7 +120,7 @@
 
 <!-- 下：操作パネル -->
 <div id="controls">
-    <div id="versionLabel">M696 v1.0.2</div>
+    <div id="versionLabel">M696 v1.1.0</div>
 
     <h3 id="controlsTitle" style="margin-bottom:4px;">操作パネル</h3>
 
@@ -1718,44 +1718,58 @@ function drawCanvasAll(){
 
 // STLファイル出力
 const stlBtn = document.getElementById("stlBtn");
+
 stlBtn.addEventListener("click", () => {
 
-    console.log("Start test...");
-    initCenterCache(model.ids, model.L);
-    console.log("init end.");
+    // ★ 実行中ブロック
+    stlBtn.disabled = true;
+    stlBtn.textContent = "実行中…";
 
-    const cellSize = L / 16;
+    // 非同期にすることで UI 更新が反映される
+    setTimeout(() => {
 
-    // ① adjacency を作る（高速版）
-    const adj = buildAdjacency(model.ids);
-    console.log("adj end.");
+        console.log("Start STL...");
+        initCenterCache(model.ids, model.L);
 
-    // ② ソリッド数を判定（adj を渡す）
-    const solids = classifySolids(model.ids, adj);
-    const solidCount = solids.length;
-    console.log("ソリッド数:", solidCount);
+        const cellSize = L / 16;
 
-    // ★ ソリッド数チェック（ここが今回の追加ポイント）
-    if (solidCount !== 1) {
-        alert(`ソリッドは、1つのみSTL出力可能です。現状のソリッド数は、${solidCount}です。`);
-        return;   // 処理中断
-    }
+        // adjacency
+        const adj = buildAdjacency(model.ids);
 
-    // ③ 境界面抽出（adj を使う）
-    const faces = extractSurfaceFaces(solids, adj);
-    /* console.log(faces); */
+        // solids
+        const solids = classifySolids(model.ids, adj);
+        const solidCount = solids.length;
 
-    // ① quad → triangles
-    const triangles = facesToTriangles(faces);
+        if (solidCount !== 1) {
+            alert(`ソリッドは、1つのみSTL出力可能です。現状のソリッド数は、${solidCount}です。`);
 
-    // ② triangles → STL文字列
-    const stlString = trianglesToSTL(triangles);
+            // ★ ボタンを元に戻す
+            stlBtn.disabled = false;
+            stlBtn.textContent = "STL出力";
+            return;
+        }
 
-    // ③ ダウンロード
-    downloadSTL(stlString);
+        // faces
+        const faces = extractSurfaceFaces(solids, adj);
 
-    console.log("STL 出力完了");
+        // triangles
+        const triangles = facesToTriangles(faces);
+
+        // STL文字列
+        const stlString = trianglesToSTL(triangles);
+
+        // ダウンロード
+        downloadSTL(stlString);
+
+        console.log("STL 出力完了");
+
+        // ★ ボタンを元に戻す
+        stlBtn.disabled = false;
+        stlBtn.textContent = "STL出力";
+
+    }, 50); // UI更新のため少し遅延
 });
+
 
 // 断面図上でのmousemoveイベント
 canvas.addEventListener("mousemove", (e) => {
