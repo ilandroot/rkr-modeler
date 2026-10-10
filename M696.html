@@ -120,7 +120,7 @@
 
 <!-- 下：操作パネル -->
 <div id="controls">
-    <div id="versionLabel">M696 v1.1.0</div>
+    <div id="versionLabel">M696 v1.1.1</div>
 
     <h3 id="controlsTitle" style="margin-bottom:4px;">操作パネル</h3>
 
@@ -1489,25 +1489,7 @@ function computeNormal(v1, v2, v3) {
   const len = Math.sqrt(nx*nx + ny*ny + nz*nz);
   return { x: nx/len, y: ny/len, z: nz/len };
 }
-/* function trianglesToSTL(triangles) {
-  let stl = "solid model\n";
 
-  for (const tri of triangles) {
-    const [v1, v2, v3] = tri;
-    const n = computeNormal(v1, v2, v3);
-
-    stl += `facet normal ${n.x} ${n.y} ${n.z}\n`;
-    stl += `  outer loop\n`;
-    stl += `    vertex ${v1.x} ${v1.y} ${v1.z}\n`;
-    stl += `    vertex ${v2.x} ${v2.y} ${v2.z}\n`;
-    stl += `    vertex ${v3.x} ${v3.y} ${v3.z}\n`;
-    stl += `  endloop\n`;
-    stl += `endfacet\n`;
-  }
-
-  stl += "endsolid model\n";
-  return stl;
-} */
 function trianglesToSTL(triangles) {
     const lines = [];
 
@@ -1567,7 +1549,6 @@ function downloadSTL(stlString) {
 
   URL.revokeObjectURL(url);
 }
-
 
 //--- STL出力関係 E
 
