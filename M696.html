@@ -1472,6 +1472,7 @@ function facesToTriangles(faces) {
 
   return triangles;
 }
+
 function computeNormal(v1, v2, v3) {
   const ux = v2.x - v1.x;
   const uy = v2.y - v1.y;
@@ -1488,7 +1489,7 @@ function computeNormal(v1, v2, v3) {
   const len = Math.sqrt(nx*nx + ny*ny + nz*nz);
   return { x: nx/len, y: ny/len, z: nz/len };
 }
-function trianglesToSTL(triangles) {
+/* function trianglesToSTL(triangles) {
   let stl = "solid model\n";
 
   for (const tri of triangles) {
@@ -1506,7 +1507,31 @@ function trianglesToSTL(triangles) {
 
   stl += "endsolid model\n";
   return stl;
+} */
+function trianglesToSTL(triangles) {
+    const lines = [];
+
+    lines.push("solid m696");
+
+    for (const tri of triangles) {
+        const [v1, v2, v3] = tri;
+        const n = computeNormal(v1, v2, v3);
+        lines.push(`facet normal ${n.x} ${n.y} ${n.z}`);
+        lines.push("outer loop");
+
+        lines.push(`vertex ${v1.x} ${v1.y} ${v1.z}`);
+        lines.push(`vertex ${v2.x} ${v2.y} ${v2.z}`);
+        lines.push(`vertex ${v3.x} ${v3.y} ${v3.z}`);
+
+        lines.push("endloop");
+        lines.push("endfacet");
+    }
+
+    lines.push("endsolid m696");
+
+    return lines.join("\n");
 }
+
 function getTimestampSTLFilename(model_name="myclay") {
     const d = new Date();
 
