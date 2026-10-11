@@ -171,6 +171,8 @@
     断面表示
     </label>
     <button id="stlBtn">STL出力</button>
+    <button id="dumpAdjBtn">adj 出力</button>
+
 
 
 </div>
@@ -1553,6 +1555,18 @@ function downloadSTL(stlString) {
 
 //--- STL出力関係 E
 
+//--- adj出力 S
+const dumpAdjBtn = document.getElementById("dumpAdjBtn");
+
+dumpAdjBtn.addEventListener("click", () => {
+    initCenterCache(model.ids, model.L);
+    const adj = buildAdjacency(model.ids);
+    const obj = Object.fromEntries(adj);
+    downloadJSON(obj, "adj_dump.json");
+    console.log("adj を adj_dump.json に出力しました");
+});
+//--- adj出力 E
+
 //---
 let clayGroup = null;
 let traceGroup = null;
@@ -1731,6 +1745,19 @@ function drawCanvasAll(){
     }
 }
 
+function downloadJSON(obj, filename = "adj.json") {
+    const json = JSON.stringify(obj, null, 2); // 整形して見やすく
+    const blob = new Blob([json], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    a.click();
+
+    URL.revokeObjectURL(url);
+}
+
 // STLファイル出力
 const stlBtn = document.getElementById("stlBtn");
 
@@ -1745,8 +1772,6 @@ stlBtn.addEventListener("click", () => {
 
         console.log("Start STL...");
         initCenterCache(model.ids, model.L);
-
-        const cellSize = L / 16;
 
         // adjacency
         const adj = buildAdjacency(model.ids);
