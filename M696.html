@@ -1006,7 +1006,7 @@ function keyCode(value) {
   return Math.round((value + EPS) * range_scale);
 }
 //-- 境界値indexのキーコード化 E
-
+/*
 function buildAdjacency(ids) {
   const adj = new Map();
   for (const id of ids) adj.set(id, []);
@@ -1057,6 +1057,72 @@ function buildAdjacency(ids) {
           ) {
             adj.get(id1).push(id2);
             adj.get(id2).push(id1);
+          }
+        }
+      }
+    }
+  }
+
+  // --- 6方向のバケットを処理 ---
+  processBucket(mapMinX);
+  processBucket(mapMaxX);
+  processBucket(mapMinY);
+  processBucket(mapMaxY);
+  processBucket(mapMinZ);
+  processBucket(mapMaxZ);
+
+  return adj;
+}
+*/
+function buildAdjacency(ids) {
+  const adj = new Map();
+  for (const id of ids) adj.set(id, new Set());   // ★ Set にする
+
+  // --- 境界キー用の Map(Set) を6方向分作成 ---
+  const mapMinX = new Map();
+  const mapMaxX = new Map();
+  const mapMinY = new Map();
+  const mapMaxY = new Map();
+  const mapMinZ = new Map();
+  const mapMaxZ = new Map();
+
+  function addToMap(map, key, id) {
+    if (!map.has(key)) map.set(key, new Set());
+    map.get(key).add(id);
+  }
+
+  // --- cube を境界キーで分類 ---
+  for (const id of ids) {
+    const p = centerCache.get(id);
+
+    addToMap(mapMinX, keyCode(p.minX), id);
+    addToMap(mapMaxX, keyCode(p.maxX), id);
+    addToMap(mapMinY, keyCode(p.minY), id);
+    addToMap(mapMaxY, keyCode(p.maxY), id);
+    addToMap(mapMinZ, keyCode(p.minZ), id);
+    addToMap(mapMaxZ, keyCode(p.maxZ), id);
+  }
+
+  // --- 6方向のバケットだけ比較する関数 ---
+  function processBucket(map) {
+    for (const [key, set] of map) {
+      const list = [...set];
+
+      for (let i = 0; i < list.length; i++) {
+        const id1 = list[i];
+        const p1 = centerCache.get(id1);
+
+        for (let j = i + 1; j < list.length; j++) {
+          const id2 = list[j];
+          const p2 = centerCache.get(id2);
+
+          if (
+            isTouchingPosX(p1, p2) || isTouchingNegX(p1, p2) ||
+            isTouchingPosY(p1, p2) || isTouchingNegY(p1, p2) ||
+            isTouchingPosZ(p1, p2) || isTouchingNegZ(p1, p2)
+          ) {
+            adj.get(id1).add(id2);   // ★ push → add
+            adj.get(id2).add(id1);   // ★ push → add
           }
         }
       }
@@ -1558,11 +1624,24 @@ function downloadSTL(stlString) {
 //--- adj出力 S
 const dumpAdjBtn = document.getElementById("dumpAdjBtn");
 
-dumpAdjBtn.addEventListener("click", () => {
+/* dumpAdjBtn.addEventListener("click", () => {
     initCenterCache(model.ids, model.L);
     const adj = buildAdjacency(model.ids);
     const obj = Object.fromEntries(adj);
     downloadJSON(obj, "adj_dump.json");
+    console.log("adj を adj_dump.json に出力しました");
+}); */
+dumpAdjBtn.addEventListener("click", () => {
+    console.log(model.ids);
+    initCenterCache(model.ids, model.L);
+
+    const adj = buildAdjacency(model.ids);  // ★ これは普通のオブジェクト
+    console.log(adj);
+    const obj = {};
+    for (const [id, set] of adj) {
+        obj[id] = [...set];
+    }
+    downloadJSON(obj, "adj_dump.json");     // ★ そのまま JSON 出力できる
     console.log("adj を adj_dump.json に出力しました");
 });
 //--- adj出力 E
