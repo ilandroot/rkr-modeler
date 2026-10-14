@@ -1621,22 +1621,44 @@ function downloadSTL(stlString) {
 
 //--- STL出力関係 E
 
+//--- 凸頂点を抽出 S
+function scanConvexVertex(ids, adj) {
+
+    const convexs = new Map();   // id → convex corner list
+
+    // 頂点コード（8 corner）
+    const VCODES = ["PPP","NPP","NNP","PNP","PPN","NPN","NNN","PNN"];
+
+    for (const id of ids) {
+
+        // ★ まずは空配列で初期化しておく
+        convexs.set(id, []);
+
+        // ★ 明日ここに corner → 外側方向 → 隣接判定 → 凸頂点抽出を書く
+        for (const vcode of VCODES) {
+            // ここで vcode を使って corner を生成する
+            // ここで方向コードを決める
+            // ここで adj と centerCache を使って隣接判定する
+            // ここで外側方向の数を数える
+            // 3方向外側なら convexs.get(id).push(corner)
+        }
+    }
+
+    return convexs;  // Map のまま返す
+}
+//--- 凸頂点を抽出 E
+
+
 //--- adj出力 S
 const dumpAdjBtn = document.getElementById("dumpAdjBtn");
 
-/* dumpAdjBtn.addEventListener("click", () => {
-    initCenterCache(model.ids, model.L);
-    const adj = buildAdjacency(model.ids);
-    const obj = Object.fromEntries(adj);
-    downloadJSON(obj, "adj_dump.json");
-    console.log("adj を adj_dump.json に出力しました");
-}); */
 dumpAdjBtn.addEventListener("click", () => {
     console.log(model.ids);
     initCenterCache(model.ids, model.L);
 
-    const adj = buildAdjacency(model.ids);  // ★ これは普通のオブジェクト
-    console.log(adj);
+    const adj = buildAdjacency(model.ids); // ★ Map のまま
+    const convexs = scanConvexVertex(model.ids,adj); //凸頂点を抽出する。
+
     const obj = {};
     for (const [id, set] of adj) {
         obj[id] = [...set];
