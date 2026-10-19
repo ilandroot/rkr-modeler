@@ -626,7 +626,7 @@ canvas.addEventListener("click", (e) => {
 
 });
 
-const L = 32;
+const L = 64; //32;
 
 function drawClaySquare() {
     const w = canvas.width;
@@ -2171,7 +2171,9 @@ const camera = new THREE.PerspectiveCamera(
     0.1,
     1000
 );
-camera.position.set(40, 40, 40);
+
+let disp_eye = model.L * 1.5;
+camera.position.set(disp_eye, disp_eye, disp_eye);
 camera.lookAt(0, 0, 0);
 camera.up = new THREE.Vector3(0, 0, 1);
 
