@@ -172,6 +172,7 @@
     </label>
     <button id="stlBtn">STL出力</button>
     <button id="dumpAdjBtn">adj 出力</button>
+    <button id="testMirrorBtn">鏡面対称テスト</button>
 
 
 
@@ -2090,6 +2091,75 @@ document.getElementById("loadFileInput").addEventListener("change", (e) => {
         loadClayModel(file);
     }
 });
+
+//-- 鏡面対称ロジックテスト S
+//粘土データ右半分の削除
+function removeRightSide(ids) {
+  const removeSet = new Set(['C', 'D', 'G', 'H']);
+  return ids.filter(id => !removeSet.has(id[0]));
+}
+//右サイドのデータがあるか判定
+function hasRightSide(ids) {
+  return ids.some(id => {
+    const head = id[0];
+    return head === 'C' || head === 'D' || head === 'G' || head === 'H';
+  });
+}
+const mirrorMap = {
+  'A': 'D',
+  'B': 'C',
+  'C': 'B',
+  'D': 'A',
+  'E': 'H',
+  'F': 'G',
+  'G': 'F',
+  'H': 'E'
+};
+
+function mirrorLeftToRight(ids) {
+  const result = new Set();
+
+  for (const id of ids) {
+    let mirrored = "";
+    for (let ch of id) {
+      mirrored += mirrorMap[ch];  // ★ 全階層で x反転
+    }
+    result.add(id);
+    result.add(mirrored);
+  }
+
+  return [...result];
+}
+
+
+const testMirrorBtn = document.getElementById("testMirrorBtn");
+
+testMirrorBtn.addEventListener("click", () => {
+    console.log("fire !!! testMirror!!!");
+    if(hasRightSide(model.ids)){
+        model.ids = removeRightSide(model.ids);
+    } else {
+        model.ids = mirrorLeftToRight(model.ids);
+    }
+    
+    // 加工ストロークの初期化
+    profilePoints = [];
+
+    // 3D の削除
+    if (clayGroup) scene.remove(clayGroup);
+    if (traceGroup) scene.remove(traceGroup);
+
+    clayGroup = null;
+    traceGroup = null;
+
+    redrawClayFromIDs(model.ids);
+    // ★ 新しい 3D を生成
+    generate3D();
+    // Canvas描画（断面図切替付き）
+    drawCanvasAll();
+});
+
+//-- 鏡面対称ロジックテスト E
 
 drawCanvasAll();
 const container = document.getElementById("threeContainer");
