@@ -174,7 +174,7 @@
     断面表示
     </label>
     <button id="stlBtn">STL出力</button>
-    <button id="dumpAdjBtn" class="hidden">adj 出力</button>
+    <button id="dumpAdjBtn">adj 出力</button>
     <button id="testMirrorBtn">鏡面対称テスト</button>
 
 
@@ -1560,30 +1560,65 @@ function downloadSTL(stlString) {
 //--- STL出力関係 E
 
 //--- 凸頂点を抽出 S
-function scanConvexVertex(ids, adj) {
+function getVertexCode(x,y,z){
+    return `${keyCode(x)},${keyCode(y)},${keyCode(z)}`;
+}
+//頂点ごとの隣接cubeを算出
+function scanVertices(ids, adj) {
 
-    const convexs = new Map();   // id → convex corner list
-
-    // 頂点コード（8 corner）
+    const vertices = new Map();
     const VCODES = ["PPP","NPP","NNP","PNP","PPN","NPN","NNN","PNN"];
 
     for (const id of ids) {
+        const p = centerCache.get(id);
 
-        // ★ まずは空配列で初期化しておく
-        convexs.set(id, []);
+        for (const vc of VCODES) {
 
-        // ★ 明日ここに corner → 外側方向 → 隣接判定 → 凸頂点抽出を書く
-        for (const vcode of VCODES) {
-            // ここで vcode を使って corner を生成する
-            // ここで方向コードを決める
-            // ここで adj と centerCache を使って隣接判定する
-            // ここで外側方向の数を数える
-            // 3方向外側なら convexs.get(id).push(corner)
+            // corner 座標
+            const x = (vc[0] === "P") ? p.maxX : p.minX;
+            const y = (vc[1] === "P") ? p.maxY : p.minY;
+            const z = (vc[2] === "P") ? p.maxZ : p.minZ;
+
+            const vid = getVertexCode(x,y,z);
+
+            if (!vertices.has(vid)) vertices.set(vid, new Set());
+            vertices.get(vid).add(id);   // 自 cube を追加
+
+            // ★ 隣接 cube の面接触判定
+            for (const nid of adj.get(id)) {
+                const nb = centerCache.get(nid);
+
+                const keyX = keyCode(x);
+                const keyY = keyCode(y);
+                const keyZ = keyCode(z);
+
+                // X 面
+                if ((keyX === keyCode(nb.minX) || keyX === keyCode(nb.maxX)) &&
+                    y >= nb.minY && y <= nb.maxY &&
+                    z >= nb.minZ && z <= nb.maxZ) {
+                    vertices.get(vid).add(nid);
+                }
+
+                // Y 面
+                if ((keyY === keyCode(nb.minY) || keyY === keyCode(nb.maxY)) &&
+                    x >= nb.minX && x <= nb.maxX &&
+                    z >= nb.minZ && z <= nb.maxZ) {
+                    vertices.get(vid).add(nid);
+                }
+
+                // Z 面
+                if ((keyZ === keyCode(nb.minZ) || keyZ === keyCode(nb.maxZ)) &&
+                    x >= nb.minX && x <= nb.maxX &&
+                    y >= nb.minY && y <= nb.maxY) {
+                    vertices.get(vid).add(nid);
+                }
+            }
         }
     }
 
-    return convexs;  // Map のまま返す
+    return vertices;
 }
+
 //--- 凸頂点を抽出 E
 
 
@@ -1595,8 +1630,8 @@ dumpAdjBtn.addEventListener("click", () => {
     initCenterCache(model.ids, model.L);
 
     const adj = buildAdjacency(model.ids); // ★ Map のまま
-    const convexs = scanConvexVertex(model.ids,adj); //凸頂点を抽出する。
-
+    const vertices = scanVertices(model.ids,adj); //凸頂点を抽出する。
+    console.log(vertices);
     const obj = {};
     for (const [id, set] of adj) {
         obj[id] = [...set];
