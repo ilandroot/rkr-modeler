@@ -176,6 +176,7 @@
     <button id="stlBtn">STL出力</button>
     <button id="dumpAdjBtn">adj 出力</button>
     <button id="testMirrorBtn">鏡面対称テスト</button>
+    <button id="invertBtn">凹凸反転</button>
 
 
 
@@ -2132,6 +2133,15 @@ testMirrorBtn.addEventListener("click", () => {
 });
 
 //-- 鏡面対称ロジックテスト E
+
+//-- 凹凸反転ロジックテスト S
+const invertBtn = document.getElementById("invertBtn");
+
+invertBtn.addEventListener("click", () => {
+    console.log("凹凸反転ボタンが押されました");
+    // ★ ここに後で反転処理を追加する
+});
+//-- 凹凸反転ロジックテスト S
 
 drawCanvasAll();
 const container = document.getElementById("threeContainer");
