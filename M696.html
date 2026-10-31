@@ -2135,11 +2135,84 @@ testMirrorBtn.addEventListener("click", () => {
 //-- 鏡面対称ロジックテスト E
 
 //-- 凹凸反転ロジックテスト S
+const OCTANTS = ["A", "B", "C", "D", "E", "F", "G", "H"];
+
+/**
+ * target を workIds から削除する
+ * 必要に応じて親Cubeを細分化する
+ */
+function subtractMorton(workIds, target) {
+
+    // target が存在するまで細分化
+    while (!workIds.has(target)) {
+
+        // workIds内に存在する最も近い親を探す
+        let parent = target;
+
+        while (parent.length > 0) {
+            parent = parent.slice(0, -1);
+
+            if (workIds.has(parent)) {
+                break;
+            }
+        }
+
+        if (!workIds.has(parent)) {
+            throw new Error(`親Cubeが見つかりません: ${target}`);
+        }
+
+        // 親を削除
+        workIds.delete(parent);
+
+        // 8分割
+        for (const o of OCTANTS) {
+            workIds.add(parent + o);
+        }
+    }
+
+    // targetを削除
+    workIds.delete(target);
+}
+
+/**
+ * 凹凸反転
+ */
+function invertShape(shapeIds) {
+
+    const workIds = new Set([
+        "A", "B", "C", "D",
+        "E", "F", "G", "H"
+    ]);
+
+    for (const id of shapeIds) {
+        subtractMorton(workIds, id);
+    }
+
+    return [...workIds].sort();
+}
 const invertBtn = document.getElementById("invertBtn");
 
 invertBtn.addEventListener("click", () => {
     console.log("凹凸反転ボタンが押されました");
     // ★ ここに後で反転処理を追加する
+    const shapeIds = model.ids;
+    model.ids = invertShape(shapeIds);
+    
+    // 加工ストロークの初期化
+    profilePoints = [];
+
+    // 3D の削除
+    if (clayGroup) scene.remove(clayGroup);
+    if (traceGroup) scene.remove(traceGroup);
+
+    clayGroup = null;
+    traceGroup = null;
+
+    redrawClayFromIDs(model.ids);
+    // ★ 新しい 3D を生成
+    generate3D();
+    // Canvas描画（断面図切替付き）
+    drawCanvasAll();
 });
 //-- 凹凸反転ロジックテスト S
 
