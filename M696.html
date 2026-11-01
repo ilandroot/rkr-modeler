@@ -177,6 +177,7 @@
     <button id="dumpAdjBtn" class="hidden">adj 出力</button>
     <button id="testMirrorBtn">鏡面対称</button>
     <button id="invertBtn">凹凸反転</button>
+    <button id="rot90Btn">９０度回転</button>
 
 
 
@@ -2215,6 +2216,51 @@ invertBtn.addEventListener("click", () => {
     drawCanvasAll();
 });
 //-- 凹凸反転ロジックテスト S
+
+//-- ９０度回転 S
+function rotate90(ids) {
+  const rot = {
+    A: "B",
+    B: "F",
+    C: "G",
+    D: "C",
+    E: "A",
+    F: "E",
+    G: "H",
+    H: "D"
+  };
+
+  return ids.map(id =>
+    [...id]
+      .map(c => rot[c])
+      .join("")
+  );
+}
+const rot90Btn = document.getElementById("rot90Btn");
+
+rot90Btn.addEventListener("click", () => {
+    console.log("９０度回転ボタンが押されました");
+    // ★ ここに後で反転処理を追加する
+    const shapeIds = model.ids;
+    model.ids = rotate90(shapeIds);
+    
+    // 加工ストロークの初期化
+    profilePoints = [];
+
+    // 3D の削除
+    if (clayGroup) scene.remove(clayGroup);
+    if (traceGroup) scene.remove(traceGroup);
+
+    clayGroup = null;
+    traceGroup = null;
+
+    redrawClayFromIDs(model.ids);
+    // ★ 新しい 3D を生成
+    generate3D();
+    // Canvas描画（断面図切替付き）
+    drawCanvasAll();
+});
+//-- ９０度回転 E
 
 drawCanvasAll();
 const container = document.getElementById("threeContainer");
