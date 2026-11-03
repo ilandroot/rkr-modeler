@@ -178,8 +178,7 @@
     <button id="testMirrorBtn">鏡面対称</button>
     <button id="invertBtn">凹凸反転</button>
     <button id="rot90Btn">９０度回転</button>
-
-
+    <button id="noFunc" class="hidden">no func</button>
 
 </div>
 
@@ -1665,6 +1664,40 @@ function scanVertices(ids, adj) {
     return vertices;
 }
 
+//--頂点IDから座標値取得
+function getVertexXYZ(vertexId) {
+
+    const [ix, iy, iz] =
+        vertexId.split(',').map(Number);
+
+    return {
+        x: ix / range_scale,
+        y: iy / range_scale,
+        z: iz / range_scale
+    };
+}
+
+//-- 凸頂点のみ抽出
+function extractConvexVertices(vertices) {
+
+    const result = new Map();
+
+    for (const [vertexId, cubes] of vertices) {
+
+        if (cubes.size !== 1) {
+            continue;
+        }
+
+        result.set(vertexId, {
+            ...getVertexXYZ(vertexId),
+            cubes: [...cubes],
+            edges: []
+        });
+    }
+
+    return result;
+}
+
 //--- 凸頂点を抽出 E
 
 
@@ -1678,6 +1711,8 @@ dumpAdjBtn.addEventListener("click", () => {
     const adj = buildAdjacency(model.ids); // ★ Map のまま
     const vertices = scanVertices(model.ids,adj); //凸頂点を抽出する。
     console.log(vertices);
+    const shapes = { vertices: extractConvexVertices(vertices) };
+    console.log(shapes.vertices.size);
     const obj = {};
     for (const [id, set] of adj) {
         obj[id] = [...set];
