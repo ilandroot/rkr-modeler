@@ -1581,35 +1581,79 @@ function scanVertices(ids, adj) {
             const y = (vc[1] === "P") ? p.maxY : p.minY;
             const z = (vc[2] === "P") ? p.maxZ : p.minZ;
 
+            const keyX = keyCode(x);
+            const keyY = keyCode(y);
+            const keyZ = keyCode(z);
+
             const vid = getVertexCode(x,y,z);
 
             if (!vertices.has(vid)) vertices.set(vid, new Set());
-            vertices.get(vid).add(id);   // 自 cube を追加
+            vertices.get(vid).add(`${id}:${vc}`);   // 自 cube を追加 - morton code に vertex code を追加する。
 
             // ★ 隣接 cube の面接触判定
             for (const nid of adj.get(id)) {
                 const nb = centerCache.get(nid);
 
-                const keyX = keyCode(x);
-                const keyY = keyCode(y);
-                const keyZ = keyCode(z);
+                const keyXN = keyCode(nb.minX);
+                const keyXP = keyCode(nb.maxX);
+                const keyYN = keyCode(nb.minY);
+                const keyYP = keyCode(nb.maxY);
+                const keyZN = keyCode(nb.minZ);
+                const keyZP = keyCode(nb.maxZ);
+
+                // すべてP
+                if (keyXP === keyX && keyYP === keyY && keyZP === keyZ ){
+                    vertices.get(vid).add(`${nid}:PPP`);
+                    continue;
+                }
+                // Nが1個の場合
+                if (keyXN === keyX && keyYP === keyY && keyZP === keyZ ){
+                    vertices.get(vid).add(`${nid}:NPP`);
+                    continue;
+                }
+                if (keyXP === keyX && keyYN === keyY && keyZP === keyZ ){
+                    vertices.get(vid).add(`${nid}:PNP`);
+                    continue;
+                }
+                if (keyXP === keyX && keyYP === keyY && keyZN === keyZ ){
+                    vertices.get(vid).add(`${nid}:PPN`);
+                    continue;
+                }
+                // Nが2個の場合
+                if (keyXN === keyX && keyYN === keyY && keyZP === keyZ ){
+                    vertices.get(vid).add(`${nid}:NNP`);
+                    continue;
+                }
+                if (keyXN === keyX && keyYP === keyY && keyZN === keyZ ){
+                    vertices.get(vid).add(`${nid}:NPN`);
+                    continue;
+                }
+                if (keyXP === keyX && keyYN === keyY && keyZN === keyZ ){
+                    vertices.get(vid).add(`${nid}:PNN`);
+                    continue;
+                }
+                // すべてN
+                if (keyXN === keyX && keyYN === keyY && keyZN === keyZ ){
+                    vertices.get(vid).add(`${nid}:NNN`);
+                    continue;
+                }
 
                 // X 面
-                if ((keyX === keyCode(nb.minX) || keyX === keyCode(nb.maxX)) &&
+                if ((keyX === keyXN || keyX === keyXP) &&
                     y >= nb.minY && y <= nb.maxY &&
                     z >= nb.minZ && z <= nb.maxZ) {
                     vertices.get(vid).add(nid);
                 }
 
                 // Y 面
-                if ((keyY === keyCode(nb.minY) || keyY === keyCode(nb.maxY)) &&
+                if ((keyY === keyYN || keyY === keyYP) &&
                     x >= nb.minX && x <= nb.maxX &&
                     z >= nb.minZ && z <= nb.maxZ) {
                     vertices.get(vid).add(nid);
                 }
 
                 // Z 面
-                if ((keyZ === keyCode(nb.minZ) || keyZ === keyCode(nb.maxZ)) &&
+                if ((keyZ === keyZN || keyZ === keyZP) &&
                     x >= nb.minX && x <= nb.maxX &&
                     y >= nb.minY && y <= nb.maxY) {
                     vertices.get(vid).add(nid);
