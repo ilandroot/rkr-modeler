@@ -1690,6 +1690,7 @@ function extractConvexVertices(vertices) {
 
         result.set(vertexId, {
             ...getVertexXYZ(vertexId),
+            convex : true,
             cubes: [...cubes],
             edges: []
         });
@@ -1712,7 +1713,8 @@ dumpAdjBtn.addEventListener("click", () => {
     const vertices = scanVertices(model.ids,adj); //凸頂点を抽出する。
     console.log(vertices);
     const shapes = { vertices: extractConvexVertices(vertices) };
-    console.log(shapes.vertices.size);
+    /* console.log(shapes.vertices.size); */
+    console.log(shapes);
     const obj = {};
     for (const [id, set] of adj) {
         obj[id] = [...set];
