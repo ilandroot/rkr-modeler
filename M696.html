@@ -174,7 +174,7 @@
     断面表示
     </label>
     <button id="stlBtn">STL出力</button>
-    <button id="dumpAdjBtn" class="hidden">adj 出力</button>
+    <button id="dumpAdjBtn">adj 出力</button>
     <button id="testMirrorBtn">鏡面対称</button>
     <button id="invertBtn">凹凸反転</button>
     <button id="rot90Btn">９０度回転</button>
@@ -1565,7 +1565,7 @@ function getVertexCode(x,y,z){
     return `${keyCode(x)},${keyCode(y)},${keyCode(z)}`;
 }
 //頂点ごとの隣接cubeを算出
-function scanVertices(ids, adj) {
+function scanVertices(ids,adj) {
 
     const vertices = new Map();
     const VCODES = ["PPP","NPP","NNP","PNP","PPN","NPN","NNN","PNN"];
@@ -1692,13 +1692,87 @@ function extractConvexVertices(vertices) {
             ...getVertexXYZ(vertexId),
             convex : true,
             cubes: [...cubes],
-            edges: []
+            // 隣接特徴点(vertexId)を保持
+            links: []
         });
     }
 
     return result;
 }
 
+/**
+ * mortonCode + vertexCode から頂点座標を取得
+ *
+ * mortonCode : "A", "CB", ...
+ * vertexCode : "PPP","NPP","NNP","PNP",
+ *              "PPN","NPN","NNN","PNN"
+ * 注意 : 事前に、initCenterCache()で、centerCacheを構築しておく必要がある。
+ */
+function getVertexPosition(mortonCode, vertexCode)
+{
+    const p = centerCache.get(mortonCode);
+    return {
+        x: (vertexCode[0] === "P") ? p.maxX : p.minX,
+        y: (vertexCode[1] === "P") ? p.maxY : p.minY,
+        z: (vertexCode[2] === "P") ? p.maxZ : p.minZ
+    };
+}
+
+/**
+ * vertexCodeの指定軸を反転
+ *
+ * axis
+ *   0 : X
+ *   1 : Y
+ *   2 : Z
+ */
+function flipVertexCode(vertexCode, axis)
+{
+    const chars = vertexCode.split('');
+
+    chars[axis] =
+        chars[axis] === 'P'
+            ? 'N'
+            : 'P';
+
+    return chars.join('');
+}
+
+// 凸頂点簡の接続情報を生成する
+function createVertexLinks(vertices, adj)
+{
+    for (const [vertexId, vertex] of vertices) {
+        console.log(vertexId);
+        console.log(vertex);
+
+        if (!vertex.convex) {
+            continue;
+        }
+
+        const [mortonCode, vertexCode] =
+            vertex.cubes[0].split(":");
+
+        console.log({
+            vertexId,
+            mortonCode,
+            vertexCode
+        });
+
+        //
+        // 明日実装
+        //
+        // for(axis=0..2)
+        // {
+        //     nextVertexCode =
+        //         flipVertexCode(
+        //             vertexCode,
+        //             axis
+        //         );
+        //
+        //     凸稜線探索
+        // }
+    }
+}
 //--- 凸頂点を抽出 E
 
 
@@ -1710,10 +1784,12 @@ dumpAdjBtn.addEventListener("click", () => {
     initCenterCache(model.ids, model.L);
 
     const adj = buildAdjacency(model.ids); // ★ Map のまま
-    const vertices = scanVertices(model.ids,adj); //凸頂点を抽出する。
-    console.log(vertices);
-    const shapes = { vertices: extractConvexVertices(vertices) };
-    /* console.log(shapes.vertices.size); */
+    const vcs = scanVertices(model.ids,adj); //凸頂点を抽出する。
+    console.log(vcs);
+    const shapes = { vertices: extractConvexVertices(vcs) };
+    
+    createVertexLinks(shapes.vertices, adj);
+
     console.log(shapes);
     const obj = {};
     for (const [id, set] of adj) {
@@ -1722,6 +1798,7 @@ dumpAdjBtn.addEventListener("click", () => {
     downloadJSON(obj, "adj_dump.json");     // ★ そのまま JSON 出力できる
     console.log("adj を adj_dump.json に出力しました");
 });
+
 //--- adj出力 E
 
 //---
