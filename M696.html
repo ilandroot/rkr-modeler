@@ -174,7 +174,7 @@
     断面表示
     </label>
     <button id="stlBtn">STL出力</button>
-    <button id="dumpAdjBtn">adj 出力</button>
+    <button id="dumpAdjBtn" class="hidden">adj 出力</button>
     <button id="testMirrorBtn">鏡面対称</button>
     <button id="invertBtn">凹凸反転</button>
     <button id="rot90Btn">９０度回転</button>
@@ -1738,7 +1738,7 @@ function flipVertexCode(vertexCode, axis)
     return chars.join('');
 }
 
-// 凸頂点簡の接続情報を生成する
+// 凸頂点間の接続情報を生成する
 function createVertexLinks(vertices, adj)
 {
     for (const [vertexId, vertex] of vertices) {
