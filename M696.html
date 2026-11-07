@@ -174,7 +174,7 @@
     断面表示
     </label>
     <button id="stlBtn">STL出力</button>
-    <button id="dumpAdjBtn" class="hidden">adj 出力</button>
+    <button id="dumpAdjBtn">adj 出力</button>
     <button id="testMirrorBtn">鏡面対称</button>
     <button id="invertBtn">凹凸反転</button>
     <button id="rot90Btn">９０度回転</button>
@@ -1737,9 +1737,56 @@ function flipVertexCode(vertexCode, axis)
 
     return chars.join('');
 }
+// 2つの頂点を結ぶ
+function linkVertices(vertices, vCode1, vCode2)
+{
+    const v1 = vertices.get(vCode1);
+    const v2 = vertices.get(vCode2);
 
+    if (!v1 || !v2) {
+        return;
+    }
+
+    if (!v1.links.includes(vCode2)) {
+        v1.links.push(vCode2);
+    }
+
+    if (!v2.links.includes(vCode1)) {
+        v2.links.push(vCode1);
+    }
+}
+/**
+ * 頂点を共有する次Cube候補を取得
+ */
+function findNextCubes(
+    currentMortonCode,
+    vertexSet
+){
+    const result = [];
+
+    for(const item of vertexSet){
+
+        if(!item.includes(":")){
+            continue;
+        }
+
+        const [mortonCode, vertexCode] =
+            item.split(":");
+
+        if(mortonCode === currentMortonCode){
+            continue;
+        }
+
+        result.push({
+            mortonCode,
+            vertexCode
+        });
+    }
+
+    return result;
+}
 // 凸頂点間の接続情報を生成する
-function createVertexLinks(vertices, adj)
+function createVertexLinks(vertices, all_vcs, adj)
 {
     for (const [vertexId, vertex] of vertices) {
         console.log(vertexId);
@@ -1758,19 +1805,39 @@ function createVertexLinks(vertices, adj)
             vertexCode
         });
 
-        //
-        // 明日実装
-        //
-        // for(axis=0..2)
-        // {
-        //     nextVertexCode =
-        //         flipVertexCode(
-        //             vertexCode,
-        //             axis
-        //         );
-        //
-        //     凸稜線探索
-        // }
+        for(let axis = 0; axis < 3; axis+=1){
+            const nextVertexCode = flipVertexCode(vertexCode, axis);
+            const p = getVertexPosition(mortonCode, nextVertexCode);
+            const nextVertexId = getVertexCode(p.x,p.y,p.z);
+            console.log(`${vertexId} -> ${nextVertexId}`);
+            const nextVertex =vertices.get(nextVertexId);
+            console.log(nextVertex);
+
+            if (nextVertex){//終端 同一cubeで隣接点がいきなり凸頂点だった場合。
+               console.log("Hit!!! at same start cube.");
+               linkVertices(vertices,vertexId,nextVertexId);
+               continue;
+            }
+            
+            //nextVertexId 頂点を含むcubeを走査する。
+            console.log("scan next vertex cubes--")
+            const featureVertex = all_vcs.get(nextVertexId);
+
+            if (!featureVertex) {
+                console.log(
+                    `vertex not found : ${nextVertexId}`
+                );
+                continue;
+            }
+
+            let nextCubes = findNextCubes(mortonCode,featureVertex);
+            for (const item of nextCubes) {
+
+                console.log(item);
+
+            }
+        }
+
     }
 }
 //--- 凸頂点を抽出 E
@@ -1784,11 +1851,11 @@ dumpAdjBtn.addEventListener("click", () => {
     initCenterCache(model.ids, model.L);
 
     const adj = buildAdjacency(model.ids); // ★ Map のまま
-    const vcs = scanVertices(model.ids,adj); //凸頂点を抽出する。
-    console.log(vcs);
-    const shapes = { vertices: extractConvexVertices(vcs) };
+    const all_vcs = scanVertices(model.ids,adj); //凸頂点を抽出する。
+    console.log(all_vcs);
+    const shapes = { vertices: extractConvexVertices(all_vcs) };
     
-    createVertexLinks(shapes.vertices, adj);
+    createVertexLinks(shapes.vertices, all_vcs, adj);
 
     console.log(shapes);
     const obj = {};
