@@ -1785,6 +1785,54 @@ function findNextCubes(
 
     return result;
 }
+/**
+ * 2つの頂点の共有Mortonコードを返す
+ *
+ * 戻り値:
+ * ["CA"]
+ */
+function getCommonMortonCodes(
+    all_vcs,
+    vertexId1,
+    vertexId2
+){
+    const set1 = all_vcs.get(vertexId1);
+    const set2 = all_vcs.get(vertexId2);
+
+    if (!set1 || !set2){
+        return [];
+    }
+
+    const mortonSet1 = new Set();
+    const mortonSet2 = new Set();
+
+    for (const item of set1){
+
+        const mortonCode =
+            item.split(":")[0];
+
+        mortonSet1.add(mortonCode);
+    }
+
+    for (const item of set2){
+
+        const mortonCode =
+            item.split(":")[0];
+
+        mortonSet2.add(mortonCode);
+    }
+
+    const common = [];
+
+    for (const mortonCode of mortonSet1){
+
+        if (mortonSet2.has(mortonCode)){
+            common.push(mortonCode);
+        }
+    }
+
+    return common;
+}
 // 凸頂点間の接続情報を生成する
 function createVertexLinks(vertices, all_vcs, adj)
 {
@@ -1834,6 +1882,17 @@ function createVertexLinks(vertices, all_vcs, adj)
             for (const item of nextCubes) {
 
                 console.log(item);
+                for (let axis2 = 0; axis2 < 3; axis2 += 1){
+                    console.log(`axis2=${axis2}`);
+                    const nextVertexCode2 = flipVertexCode(item.vertexCode, axis2);
+                    const p2 = getVertexPosition(item.mortonCode, nextVertexCode2);
+                    const nextVertexId2 = getVertexCode(p2.x,p2.y,p2.z);
+                    const common = getCommonMortonCodes( all_vcs, nextVertexId, nextVertexId2);
+                    console.log(common);
+                    console.log(common.length );
+                    if (common.length !== 1) continue;
+                    console.log(`Search convex edge: ${nextVertexId} -> ${nextVertexId2}`);
+                }
 
             }
         }
