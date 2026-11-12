@@ -1899,6 +1899,52 @@ function createVertexLinks(vertices, all_vcs, adj)
 
     }
 }
+
+// cash よりデータの最大値、最小値を算出
+function getMinMax(ids){
+    let xMin=null;
+    let yMin=null;
+    let zMin=null;
+    let xMax=null;
+    let yMax=null;
+    let zMax=null;
+    for (const id of ids) {
+        const p = centerCache.get(id);
+        if (xMin === null) xMin = p.minX;
+        if (yMin === null) yMin = p.minY;
+        if (zMin === null) zMin = p.minZ;
+        if (xMax === null) xMax = p.maxX;
+        if (yMax === null) yMax = p.maxY;
+        if (zMax === null) zMax = p.maxZ;
+
+        if (xMin > p.minX) xMin = p.minX;
+        if (yMin > p.minY) yMin = p.minY;
+        if (zMin > p.minZ) zMin = p.minZ;
+        if (xMax < p.maxX) xMax = p.maxX;
+        if (yMax < p.maxY) yMax = p.maxY;
+        if (zMax < p.maxZ) zMax = p.maxZ;
+    }
+    return { minX: xMin, minY: yMin, minZ: zMin, maxX: xMax, maxY: yMax, maxZ: zMax};
+}
+// cashより、指定した断面(z値)に交差するcubeのmortonコードを抜き出す。
+function getCrossSectionCubes(ids, z0)
+{
+    const cubes = [];
+
+    for (const id of ids){
+
+        const p = centerCache.get(id);
+
+        if (
+            p.minZ <= z0 &&
+            z0 <= p.maxZ
+        ){
+            cubes.push(id);
+        }
+    }
+
+    return cubes;
+}
 //--- 凸頂点を抽出 E
 
 
@@ -1908,15 +1954,24 @@ const dumpAdjBtn = document.getElementById("dumpAdjBtn");
 dumpAdjBtn.addEventListener("click", () => {
     console.log(model.ids);
     initCenterCache(model.ids, model.L);
+    const boundingBox = getMinMax(model.ids);
+    console.log(boundingBox);
+    for (let z0 = boundingBox.minZ; z0 < boundingBox.maxZ; z0 += 64){
+        const sec_ids = getCrossSectionCubes(model.ids, z0);
+        console.log(
+            `z=${z0}`,
+            sec_ids.length
+        );
+        console.log(sec_ids);
+    }
+    
 
     const adj = buildAdjacency(model.ids); // ★ Map のまま
-    const all_vcs = scanVertices(model.ids,adj); //凸頂点を抽出する。
+    /* const all_vcs = scanVertices(model.ids,adj); //凸頂点を抽出する。
     console.log(all_vcs);
     const shapes = { vertices: extractConvexVertices(all_vcs) };
-    
     createVertexLinks(shapes.vertices, all_vcs, adj);
-
-    console.log(shapes);
+    console.log(shapes); */
     const obj = {};
     for (const [id, set] of adj) {
         obj[id] = [...set];
