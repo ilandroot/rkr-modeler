@@ -1956,13 +1956,33 @@ dumpAdjBtn.addEventListener("click", () => {
     initCenterCache(model.ids, model.L);
     const boundingBox = getMinMax(model.ids);
     console.log(boundingBox);
-    for (let z0 = boundingBox.minZ; z0 < boundingBox.maxZ; z0 += 64){
+
+    const d = 0.25;// L=64,depth=8より算出
+    const dd = d / 2;
+
+    for (let z0 = boundingBox.minZ+dd; z0 < boundingBox.maxZ; z0 += 64){//底からxy平面に平行に断面をスキャンする。
+
         const sec_ids = getCrossSectionCubes(model.ids, z0);
         console.log(
             `z=${z0}`,
             sec_ids.length
         );
         console.log(sec_ids);
+
+        for(let x = boundingBox.minX + dd; x < boundingBox.maxX; x += d){//x値を移動しながら、yの区間列を取得する
+            console.log(`x=${x}`);
+            for (const id of sec_ids){
+                const p = centerCache.get(id);
+                if (p.minX <= x && p.maxX >= x){
+                    let range_s = p.minY;
+                    let range_e = p.maxY;
+                    console.log({range_s,range_e});
+                }
+            }
+        }
+        for(let y = boundingBox.minY + dd; y < boundingBox.maxY; y += d){//y値を移動しながら、xの区間列を取得する
+            console.log(`y=${y}`);
+        }
     }
     
 
