@@ -1971,7 +1971,6 @@ dumpAdjBtn.addEventListener("click", () => {
 
         const mapX = new Map();
         for(let x = boundingBox.minX + dd; x < boundingBox.maxX; x += d){//x値を移動しながら、yの区間列を取得する
-            console.log(`x=${x}`);
             for (const id of sec_ids){
                 const p = centerCache.get(id);
                 if (p.minX <= x && p.maxX >= x){
@@ -1979,15 +1978,25 @@ dumpAdjBtn.addEventListener("click", () => {
                     let range_s = p.minY;
                     let range_e = p.maxY;
                     const ra = {range_s,range_e};
-                    console.log(ra);
                     mapX.get(x).push(ra);
                 }
             }
         }
         console.log(mapX);
+        const mapY = new Map();
         for(let y = boundingBox.minY + dd; y < boundingBox.maxY; y += d){//y値を移動しながら、xの区間列を取得する
-            console.log(`y=${y}`);
+            for (const id of sec_ids){
+                const p = centerCache.get(id);
+                if (p.minY <= y && p.maxY >= y){
+                    if(!mapY.has(y)) mapY.set(y,[]);
+                    let range_s = p.minX;
+                    let range_e = p.maxX;
+                    const ra = {range_s,range_e};
+                    mapY.get(y).push(ra);
+                }
+            }
         }
+        console.log(mapY);
     }
     
 
