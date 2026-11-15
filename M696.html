@@ -1969,17 +1969,22 @@ dumpAdjBtn.addEventListener("click", () => {
         );
         console.log(sec_ids);
 
+        const mapX = new Map();
         for(let x = boundingBox.minX + dd; x < boundingBox.maxX; x += d){//x値を移動しながら、yの区間列を取得する
             console.log(`x=${x}`);
             for (const id of sec_ids){
                 const p = centerCache.get(id);
                 if (p.minX <= x && p.maxX >= x){
+                    if(!mapX.has(x)) mapX.set(x,[]);
                     let range_s = p.minY;
                     let range_e = p.maxY;
-                    console.log({range_s,range_e});
+                    const ra = {range_s,range_e};
+                    console.log(ra);
+                    mapX.get(x).push(ra);
                 }
             }
         }
+        console.log(mapX);
         for(let y = boundingBox.minY + dd; y < boundingBox.maxY; y += d){//y値を移動しながら、xの区間列を取得する
             console.log(`y=${y}`);
         }
