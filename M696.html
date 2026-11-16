@@ -1945,6 +1945,91 @@ function getCrossSectionCubes(ids, z0)
 
     return cubes;
 }
+// 区間列をマージする。
+function rangeMerge(ras)
+{
+    if (ras.length === 0) {
+        return [];
+    }
+
+    const sorted = [...ras].sort(
+        (a, b) => a.range_s - b.range_s
+    );
+
+    const result = [];
+
+    let current = {
+        range_s: sorted[0].range_s,
+        range_e: sorted[0].range_e
+    };
+
+    for (let i = 1; i < sorted.length; i++) {
+
+        const ra = sorted[i];
+
+        // 接している、または重なっている
+        if (ra.range_s <= current.range_e) {
+
+            current.range_e =
+                Math.max(
+                    current.range_e,
+                    ra.range_e
+                );
+
+        } else {
+
+            result.push(current);
+
+            current = {
+                range_s: ra.range_s,
+                range_e: ra.range_e
+            };
+        }
+    }
+
+    result.push(current);
+
+    return result;
+}
+function getZXSecMap(bndBox,d,dd,sec_ids){
+    const mapX = new Map();
+    for(let x = bndBox.minX + dd; x < bndBox.maxX; x += d){//x値を移動しながら、yの区間列を取得する
+        for (const id of sec_ids){
+            const p = centerCache.get(id);
+            if (p.minX <= x && p.maxX >= x){
+                if(!mapX.has(x)) mapX.set(x,[]);
+                let range_s = p.minY;
+                let range_e = p.maxY;
+                const ra = {range_s,range_e};
+                mapX.get(x).push(ra);
+            }
+        }
+        if(mapX.has(x)){
+            mapX.set(x,rangeMerge(mapX.get(x)));
+        }
+    }
+    
+    return mapX;
+}
+function getZYSecMap(bndBox,d,dd,sec_ids){
+    const mapY = new Map();
+    for(let y = bndBox.minY + dd; y < bndBox.maxY; y += d){//y値を移動しながら、xの区間列を取得する
+        for (const id of sec_ids){
+            const p = centerCache.get(id);
+            if (p.minY <= y && p.maxY >= y){
+                if(!mapY.has(y)) mapY.set(y,[]);
+                let range_s = p.minX;
+                let range_e = p.maxX;
+                const ra = {range_s,range_e};
+                mapY.get(y).push(ra);
+            }
+        }
+        if(mapY.has(y)){
+            mapY.set(y,rangeMerge(mapY.get(y)));
+        }
+    }
+    return mapY;
+}
 //--- 凸頂点を抽出 E
 
 
@@ -1960,46 +2045,21 @@ dumpAdjBtn.addEventListener("click", () => {
     const d = 0.25;// L=64,depth=8より算出
     const dd = d / 2;
 
-    for (let z0 = boundingBox.minZ+dd; z0 < boundingBox.maxZ; z0 += 64){//底からxy平面に平行に断面をスキャンする。
+    for (let z0 = boundingBox.minZ+dd; z0 < boundingBox.maxZ; z0 += d){//64){//底からxy平面に平行に断面をスキャンする。
 
         const sec_ids = getCrossSectionCubes(model.ids, z0);
         console.log(
             `z=${z0}`,
             sec_ids.length
         );
-        console.log(sec_ids);
+        console.log(`sec_ids.length=${sec_ids.length}`);
 
-        const mapX = new Map();
-        for(let x = boundingBox.minX + dd; x < boundingBox.maxX; x += d){//x値を移動しながら、yの区間列を取得する
-            for (const id of sec_ids){
-                const p = centerCache.get(id);
-                if (p.minX <= x && p.maxX >= x){
-                    if(!mapX.has(x)) mapX.set(x,[]);
-                    let range_s = p.minY;
-                    let range_e = p.maxY;
-                    const ra = {range_s,range_e};
-                    mapX.get(x).push(ra);
-                }
-            }
-        }
+        const mapX = getZXSecMap(boundingBox,d,dd,sec_ids)
         console.log(mapX);
-        const mapY = new Map();
-        for(let y = boundingBox.minY + dd; y < boundingBox.maxY; y += d){//y値を移動しながら、xの区間列を取得する
-            for (const id of sec_ids){
-                const p = centerCache.get(id);
-                if (p.minY <= y && p.maxY >= y){
-                    if(!mapY.has(y)) mapY.set(y,[]);
-                    let range_s = p.minX;
-                    let range_e = p.maxX;
-                    const ra = {range_s,range_e};
-                    mapY.get(y).push(ra);
-                }
-            }
-        }
+        const mapY = getZYSecMap(boundingBox,d,dd,sec_ids);
         console.log(mapY);
     }
     
-
     const adj = buildAdjacency(model.ids); // ★ Map のまま
     /* const all_vcs = scanVertices(model.ids,adj); //凸頂点を抽出する。
     console.log(all_vcs);
