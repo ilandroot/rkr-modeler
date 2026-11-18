@@ -2056,8 +2056,12 @@ dumpAdjBtn.addEventListener("click", () => {
 
         const mapX = getZXSecMap(boundingBox,d,dd,sec_ids)
         console.log(mapX);
+        const xKeys =  [...mapX.keys()].sort((a, b) => a - b);// mapXのKeys配列を取得
+        console.log(xKeys);
         const mapY = getZYSecMap(boundingBox,d,dd,sec_ids);
         console.log(mapY);
+        const yKeys =  [...mapY.keys()].sort((a, b) => a - b);// mapYのKeys配列を取得
+        console.log(yKeys);
     }
     
     const adj = buildAdjacency(model.ids); // ★ Map のまま
