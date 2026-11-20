@@ -1960,7 +1960,9 @@ function rangeMerge(ras)
 
     let current = {
         range_s: sorted[0].range_s,
-        range_e: sorted[0].range_e
+        range_e: sorted[0].range_e,
+        used_s:false,
+        used_e:false
     };
 
     for (let i = 1; i < sorted.length; i++) {
@@ -1982,7 +1984,9 @@ function rangeMerge(ras)
 
             current = {
                 range_s: ra.range_s,
-                range_e: ra.range_e
+                range_e: ra.range_e,
+                used_s:false,
+                used_e:false
             };
         }
     }
@@ -2000,7 +2004,7 @@ function getZXSecMap(bndBox,d,dd,sec_ids){
                 if(!mapX.has(x)) mapX.set(x,[]);
                 let range_s = p.minY;
                 let range_e = p.maxY;
-                const ra = {range_s,range_e};
+                const ra = {range_s,range_e,used_s:false,used_e:false};
                 mapX.get(x).push(ra);
             }
         }
@@ -2020,7 +2024,7 @@ function getZYSecMap(bndBox,d,dd,sec_ids){
                 if(!mapY.has(y)) mapY.set(y,[]);
                 let range_s = p.minX;
                 let range_e = p.maxX;
-                const ra = {range_s,range_e};
+                const ra = {range_s,range_e,used_s:false,used_e:false};
                 mapY.get(y).push(ra);
             }
         }
