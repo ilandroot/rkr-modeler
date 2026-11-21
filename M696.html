@@ -2066,6 +2066,39 @@ dumpAdjBtn.addEventListener("click", () => {
         console.log(mapY);
         const yKeys =  [...mapY.keys()].sort((a, b) => a - b);// mapYのKeys配列を取得
         console.log(yKeys);
+        // loop生成
+        let ix = 0;
+        let iy = 0;
+        //ixの中で、used_sがfalseである最初の区間を取り出す。
+        let x_value = xKeys[ix];
+        console.log(`x_value=${x_value}`);
+        let ra = null;
+        for (const x_ra of mapX.get(x_value)){
+            if (x_ra.used_s === false){
+                ra = x_ra;
+                break;
+            }
+        }
+        console.log(ra);
+        if (ra === null){
+            console.log("区間が見つからなかった");
+            return;
+        }
+        // xの対象区間を横切るyの区間で、used_s,used_eのどちらかがfalseになっている区間を抽出する。
+        for(iy = 0; iy < yKeys.length; iy += 1){
+            let y_value = yKeys[iy];
+            // ra区間に、y値が含まれるものを対象とする
+            if (y_value < ra.range_s || y_value > ra.range_e)
+                continue;
+            for (const y_ra of mapY.get(y_value)){
+                if (y_ra.used_s === false || y_ra.used_e === false){
+                    console.log(`y_value=${y_value}`);
+                    console.log(y_ra);
+                    break;
+                }
+            }
+        }
+
     }
     
     const adj = buildAdjacency(model.ids); // ★ Map のまま
