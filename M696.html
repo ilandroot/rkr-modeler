@@ -2034,6 +2034,109 @@ function getZYSecMap(bndBox,d,dd,sec_ids){
     }
     return mapY;
 }
+function hasUnusedRange(map)
+{
+    for (const ranges of map.values()) {
+
+        for (const r of ranges) {
+
+            if (!r.used_s) return true;
+            if (!r.used_e) return true;
+        }
+    }
+
+    return false;
+}
+function traceNextLoop(mapX,mapY,d,dd){
+    const points = [];
+    const xKeys =  [...mapX.keys()].sort((a, b) => a - b);// mapXのKeys配列を取得
+    let xra = null;//開始X値->区間
+    let x_value = null;
+
+    for(const x_v of xKeys){
+
+        for (const x_ra of mapX.get(x_v)){
+
+            if (
+                !x_ra.used_s ||
+                !x_ra.used_e
+            ){
+                xra = x_ra;
+                x_value = x_v;
+                break;
+            }
+        }
+
+        if(xra) break;
+    }
+    console.log(xra);
+    let yra = null;
+    let isXToUpper = true;
+    while (xra) {//開始の区間が見つかった。ル＝プ探索開始
+        console.log("--ループ探索開始");
+        const isRightMove = (xra.used_s === false);
+        console.log(`isRightMove=${isRightMove}`);
+        let x = x_value;
+        let y = isRightMove ? xra.range_s : xra.range_e;
+
+        // set initial offset y
+        if (isRightMove){
+            y += dd;
+        } else {
+            y -= dd;
+        }
+        let y_value = null;
+        while (mapY.has(y)) { //y区間があり
+            for (const y_ra of mapY.get(y)){
+                if ( y_ra.range_s <= x && y_ra.range_e >= x ){//x値が、yの区間内にある区間を見つける
+                    yra = y_ra;
+                    if (Math.abs(x - yra.range_s) <= dd && yra.used_s === false) {
+                        y_value = y;
+                        x = yra.range_s;
+                        const p = {x,y};
+                        points.push(p);
+                        yra.used_s = true;
+                        break;
+                    }
+                    if (Math.abs(x - yra.range_e) <= dd && yra.used_e === false) {
+                        y_value = y;
+                        x = yra.range_e;
+                        const p = {x,y};
+                        points.push(p);
+                        yra.used_e = true;
+                        break;
+                    }
+                }
+            }    
+            if (isRightMove){
+                y += d;
+            } else {
+                y -= d;
+            }
+        }
+        // xraの端点を点列に追加する。
+        if (isXToUpper){
+            if (xra.used_e === false){
+                x = x_value;
+                y = xra.range_e;
+                const p = {x,y};
+                points.push(p);
+                xra.used_e = true;
+            }
+        } else {
+            if (xra.used_s === false){
+                x = x_value;
+                y = xra.range_s;
+                const p = {x,y};
+                points.push(p);
+                xra.used_s = true;
+            }
+        }
+        //ここに、xraを更新する
+        break;
+    }
+    return points;
+}
 //--- 凸頂点を抽出 E
 
 
@@ -2060,53 +2163,23 @@ dumpAdjBtn.addEventListener("click", () => {
 
         const mapX = getZXSecMap(boundingBox,d,dd,sec_ids)
         console.log(mapX);
-        const xKeys =  [...mapX.keys()].sort((a, b) => a - b);// mapXのKeys配列を取得
-        console.log(xKeys);
+
+        //const xKeys =  [...mapX.keys()].sort((a, b) => a - b);// mapXのKeys配列を取得
+        //console.log(xKeys);
         const mapY = getZYSecMap(boundingBox,d,dd,sec_ids);
-        console.log(mapY);
-        const yKeys =  [...mapY.keys()].sort((a, b) => a - b);// mapYのKeys配列を取得
-        console.log(yKeys);
-        // loop生成
-        let ix = 0;
-        let iy = 0;
-        //ixの中で、used_sがfalseである最初の区間を取り出す。
-        let x_value = xKeys[ix];
-        console.log(`x_value=${x_value}`);
-        let ra = null;
-        for (const x_ra of mapX.get(x_value)){
-            if (x_ra.used_s === false){
-                ra = x_ra;
-                break;
-            }
-        }
-        console.log(ra);
-        if (ra === null){
-            console.log("区間が見つからなかった");
-            return;
-        }
-        // xの対象区間を横切るyの区間で、used_s,used_eのどちらかがfalseになっている区間を抽出する。
-        for(iy = 0; iy < yKeys.length; iy += 1){
-            let y_value = yKeys[iy];
-            // ra区間に、y値が含まれるものを対象とする
-            if (y_value < ra.range_s || y_value > ra.range_e)
-                continue;
-            for (const y_ra of mapY.get(y_value)){
-                if (y_ra.used_s === false || y_ra.used_e === false){
-                    console.log(`y_value=${y_value}`);
-                    console.log(y_ra);
-                    break;
-                }
-            }
+        //console.log(mapY);
+        //const yKeys =  [...mapY.keys()].sort((a, b) => a - b);// mapYのKeys配列を取得
+
+        let isNext = true;
+        while(isNext){
+            const points = traceNextLoop(mapX,mapY,d,dd);
+            console.log(points);
+            isNext = (points.length > 0);
         }
 
     }
     
     const adj = buildAdjacency(model.ids); // ★ Map のまま
-    /* const all_vcs = scanVertices(model.ids,adj); //凸頂点を抽出する。
-    console.log(all_vcs);
-    const shapes = { vertices: extractConvexVertices(all_vcs) };
-    createVertexLinks(shapes.vertices, all_vcs, adj);
-    console.log(shapes); */
     const obj = {};
     for (const [id, set] of adj) {
         obj[id] = [...set];
