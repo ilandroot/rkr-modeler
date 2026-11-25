@@ -2047,6 +2047,38 @@ function hasUnusedRange(map)
 
     return false;
 }
+function nextXY(bx,by,d,dd,num){
+    let x = null;
+    let y = null;
+    if (num === 0) { // +x,+y
+        x = bx - dd;
+        y = by - dd;
+    } else if (num === 1) {
+        x = bx;
+        y = by - d;
+    } else if (num === 2) {
+        x = bx + dd;
+        y = by - dd;
+    } else if (num === 3) {
+        x = bx + d;
+        y = by;
+    } else if (num === 4) {
+        x = bx + dd;
+        y = by + dd;
+    } else if (num === 5) {
+        x = bx;
+        y = by + d;
+    } else if (num === 6) {
+        x = bx - dd;
+        y = by + dd;
+    } else if (num === 7) {
+        x = bx - d;
+        y = by;
+    } else {
+       console.log("ERROR: num is not right.")
+    }
+    return {x,y};
+}
 function traceNextLoop(mapX,mapY,d,dd){
     const points = [];
     const xKeys =  [...mapX.keys()].sort((a, b) => a - b);// mapXのKeys配列を取得
@@ -2070,70 +2102,55 @@ function traceNextLoop(mapX,mapY,d,dd){
         if(xra) break;
     }
     console.log(xra);
-    let yra = null;
-    let isXToUpper = true;
-    while (xra) {//開始の区間が見つかった。ル＝プ探索開始
-        console.log("--ループ探索開始");
-        const isRightMove = (xra.used_s === false);
-        console.log(`isRightMove=${isRightMove}`);
-        let x = x_value;
-        let y = isRightMove ? xra.range_s : xra.range_e;
+    if(xra === null) return points;
+    let x = x_value;
+    let y = (xra.used_s === false) ? xra.range_s : xra.range_e;
 
-        // set initial offset y
-        if (isRightMove){
-            y += dd;
-        } else {
-            y -= dd;
-        }
-        let y_value = null;
-        while (mapY.has(y)) { //y区間があり
-            for (const y_ra of mapY.get(y)){
-                if ( y_ra.range_s <= x && y_ra.range_e >= x ){//x値が、yの区間内にある区間を見つける
-                    yra = y_ra;
-                    if (Math.abs(x - yra.range_s) <= dd && yra.used_s === false) {
-                        y_value = y;
-                        x = yra.range_s;
-                        const p = {x,y};
-                        points.push(p);
-                        yra.used_s = true;
+    while (true) {//開始の区間が見つかった。ル＝プ探索開始
+        console.log("--ループ探索開始");
+        let findF = false;
+
+        for (let num = 0; num < 8; num += 1){
+
+            let p = nextXY(x,y,d,dd,num);
+
+            // 点pが未使用な区間の端点か確認する。見つかったら、使用済みマークを区間に設定して、点列に追加する
+            if (mapX.has(p.x)){ // X値の区間があるか
+                for(const y_ra of mapX.get(p.x)){
+                    if (y_ra.used_s === false && y_ra.range_s === p.y){
+                        y_ra.used_s = true;
+                        findF = true;
                         break;
-                    }
-                    if (Math.abs(x - yra.range_e) <= dd && yra.used_e === false) {
-                        y_value = y;
-                        x = yra.range_e;
-                        const p = {x,y};
-                        points.push(p);
-                        yra.used_e = true;
+                    } else if (y_ra.used_e === false && y_ra.range_e === p.y){
+                        y_ra.used_e = true;
+                        findF = true;
                         break;
                     }
                 }
-            }    
-            if (isRightMove){
-                y += d;
-            } else {
-                y -= d;
+            } else if (mapY.has(p.y)){ // Y値の区間があるか
+                for(const x_ra of mapY.get(p.y)){
+                    if (x_ra.used_s === false && x_ra.range_s === p.x){
+                        x_ra.used_s = true;
+                        findF = true;
+                        break;
+                    } else if (x_ra.used_e === false && x_ra.range_e === p.x){
+                        x_ra.used_e = true;
+                        findF = true;
+                        break;
+                    }
+                }
+            }
+
+            // 見つかったら、点を登録する。
+            if (findF){
+                x = p.x;
+                y = p.y;
+                const findP = {x,y};
+                points.push(findP);
+                break;
             }
         }
-        // xraの端点を点列に追加する。
-        if (isXToUpper){
-            if (xra.used_e === false){
-                x = x_value;
-                y = xra.range_e;
-                const p = {x,y};
-                points.push(p);
-                xra.used_e = true;
-            }
-        } else {
-            if (xra.used_s === false){
-                x = x_value;
-                y = xra.range_s;
-                const p = {x,y};
-                points.push(p);
-                xra.used_s = true;
-            }
-        }
-        //ここに、xraを更新する
-        break;
+        if (!findF) break;//仮にbreak
     }
     return points;
 }
@@ -2170,11 +2187,11 @@ dumpAdjBtn.addEventListener("click", () => {
         //console.log(mapY);
         //const yKeys =  [...mapY.keys()].sort((a, b) => a - b);// mapYのKeys配列を取得
 
-        let isNext = true;
-        while(isNext){
+        while(true){
             const points = traceNextLoop(mapX,mapY,d,dd);
             console.log(points);
-            isNext = (points.length > 0);
+            if (points.length === 0)
+                break;
         }
 
     }
