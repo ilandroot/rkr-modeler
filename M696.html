@@ -2101,7 +2101,7 @@ function traceNextLoop(mapX,mapY,d,dd){
 
         if(xra) break;
     }
-    console.log(xra);
+
     if(xra === null) return points;
     let x = x_value;
     let y = (xra.used_s === false) ? xra.range_s : xra.range_e;
@@ -2170,6 +2170,7 @@ dumpAdjBtn.addEventListener("click", () => {
     const dd = d / 2;
 
     for (let z0 = boundingBox.minZ+dd; z0 < boundingBox.maxZ; z0 += d){//64){//底からxy平面に平行に断面をスキャンする。
+        console.log("--断面")
 
         const sec_ids = getCrossSectionCubes(model.ids, z0);
         console.log(
@@ -2178,14 +2179,8 @@ dumpAdjBtn.addEventListener("click", () => {
         );
         console.log(`sec_ids.length=${sec_ids.length}`);
 
-        const mapX = getZXSecMap(boundingBox,d,dd,sec_ids)
-        console.log(mapX);
-
-        //const xKeys =  [...mapX.keys()].sort((a, b) => a - b);// mapXのKeys配列を取得
-        //console.log(xKeys);
+        const mapX = getZXSecMap(boundingBox,d,dd,sec_ids);
         const mapY = getZYSecMap(boundingBox,d,dd,sec_ids);
-        //console.log(mapY);
-        //const yKeys =  [...mapY.keys()].sort((a, b) => a - b);// mapYのKeys配列を取得
 
         while(true){
             const points = traceNextLoop(mapX,mapY,d,dd);
