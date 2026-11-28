@@ -2079,6 +2079,39 @@ function nextXY(bx,by,d,dd,num){
     }
     return {x,y};
 }
+// 特徴点列を生成する。
+function makeFeaturePoints(points,mapX,mapY){
+    const fPoints = [];
+    for(let i = 0; i < points.length; i += 1){
+        let j = ( i + 1 ) % points.length;
+        const sp = points[i];
+        const ep = points[j];
+        if (sp.x === ep.x)
+            continue;
+        if (sp.y === ep.y)
+            continue;
+        let x = null;
+        let y = null;
+        if (mapX.has(sp.x)) {
+            y = sp.y;
+        } else if (mapY.has(sp.y)){
+            x = sp.x;
+        }
+        if (mapX.has(ep.x)) {
+            y = ep.y;
+        } else if (mapY.has(ep.y)){
+            x = ep.x;
+        }
+        if (x === null || y === null){
+            console.log("ERROR: 特徴点を求めることができませんでした。");
+            return [];
+        }
+        const fPoint = {x,y};
+        fPoints.push(fPoint);
+    }
+    return fPoints;
+}
+
 function traceNextLoop(mapX,mapY,d,dd){
     const points = [];
     const xKeys =  [...mapX.keys()].sort((a, b) => a - b);// mapXのKeys配列を取得
@@ -2169,6 +2202,7 @@ dumpAdjBtn.addEventListener("click", () => {
     const d = 0.25;// L=64,depth=8より算出
     const dd = d / 2;
 
+    let outF = true;
     for (let z0 = boundingBox.minZ+dd; z0 < boundingBox.maxZ; z0 += d){//64){//底からxy平面に平行に断面をスキャンする。
         console.log("--断面")
 
@@ -2185,9 +2219,30 @@ dumpAdjBtn.addEventListener("click", () => {
         while(true){
             const points = traceNextLoop(mapX,mapY,d,dd);
             console.log(points);
+
             if (points.length === 0)
                 break;
+            const fPoints = makeFeaturePoints(points,mapX,mapY);
+            console.log("特徴点列:");
+            console.log(fPoints);
+
+            //--for debug
+            if(outF){
+                const data = {
+                    z: z0,
+                    loopPoints: points,
+                    featurePoints: fPoints
+                };
+                downloadJSON(
+                    data,
+                    "compare.json"
+                );
+            }
+            outF = false;
         }
+        
+
+
 
     }
     
